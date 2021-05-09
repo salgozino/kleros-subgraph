@@ -104,7 +104,11 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   let dispute = new Dispute(disputeID.toHex())
   dispute.period = getPeriod(event.params._period)
   dispute.lastPeriodChange = event.block.timestamp
+  
+  // update current rulling
+  dispute.currentRulling = getCurrentRulling(disputeID, event.address)
   dispute.save()
+
 }
 
 export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
@@ -125,9 +129,13 @@ export function handleCastVote(call: CastVoteCall): void {
     vote.voted = true
     vote.save()
   } 
-  
 
+  // update current rulling
+  let dispute = new Dispute(disputeID.toHex())
+  dispute.currentRulling = getCurrentRulling(disputeID, call.from)
+  dispute.save()
 }
+
 export function handlePolicyUpdate(event: PolicyUpdateEvent): void {
 
 }
@@ -150,4 +158,18 @@ export function getPeriod(period: number): string {
   }
   return ''
 
+}
+
+export function getCurrentRulling(disputeID: BigInt, address: Address): BigInt {
+    // update current rulling
+    log.debug("Asking current rulling in dispute {}", [disputeID.toString()])
+    let contract = KlerosLiquid.bind(address)
+    let callResult = contract.try_currentRuling(disputeID)
+    let currentRulling = BigInt.fromI32(0)
+    if (callResult.reverted) {
+      log.debug("currentRulling reverted", [])
+    } else {
+      currentRulling = callResult.value
+    }
+    return currentRulling
 }
