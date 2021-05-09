@@ -94,14 +94,14 @@ export function handleDraw(event: DrawEvent): void {
 export function handleNewPeriod(event: NewPeriodEvent): void {
   
   let disputeID = event.params._disputeID
-  log.info("handleNewPeriod: new period for the dispute {}", [disputeID.toString()])
+  log.debug("handleNewPeriod: new period for the dispute {}", [disputeID.toString()])
   let entity = new NewPeriod(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
   entity.newPeriod = getPeriod(event.params._period)
   entity.disputeId = event.params._disputeID
   entity.save()
 
   // update the dispute period
-  let dispute = new Dispute(disputeID.toHex())
+  let dispute = Dispute.load(disputeID.toHex())
   dispute.period = getPeriod(event.params._period)
   dispute.lastPeriodChange = event.block.timestamp
   
@@ -123,7 +123,7 @@ export function handleCastVote(call: CastVoteCall): void {
 
   for (let i = 0; i < voteIDs.length; i++) {
     log.info("Storing the vote {} from dispute {}",[voteIDs[i].toString(), disputeID.toString()])
-    let vote = new Vote(disputeID.toHex() + "-" + voteIDs[i].toHex())
+    let vote = Vote.load(disputeID.toHex() + "-" + voteIDs[i].toHex())
     vote.choice = choice
     vote.salt = salt
     vote.voted = true
@@ -131,7 +131,7 @@ export function handleCastVote(call: CastVoteCall): void {
   } 
 
   // update current rulling
-  let dispute = new Dispute(disputeID.toHex())
+  let dispute = Dispute.load(disputeID.toHex())
   dispute.currentRulling = getCurrentRulling(disputeID, call.from)
   dispute.save()
 }
