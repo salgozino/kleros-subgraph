@@ -47,17 +47,18 @@ Each dispute entity has it own metrics and data.
 * Jurors involved
 ### Round
 Each round is an entity
-* Dispute ID
+* Dispute associated
 * Votes
 * Round rulling
 * Round start time
 ### Vote
 Each vote has it's own entity
-* Dispute ID
-* Round ID
-* voteID
+* Dispute
+* Round
+* vote
 * Juror
 * Choice
+* voted
 ### Juror/Challenger
 * ID (address)
 * subcourts id where staked

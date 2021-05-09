@@ -1,0 +1,112 @@
+# KlerosLiquid entities
+enum Period {
+  "Evidence can be submitted. This is also when drawing has to take place."
+  evidence,
+  "Jurors commit a hashed vote. This is skipped for courts without hidden votes."
+  commit,
+  "Jurors reveal/cast their vote depending on whether the court has hidden votes or not."
+  vote, 
+  "The dispute can be appealed."
+  appeal,
+  "Tokens are redistributed and the ruling is executed."
+  execution
+}
+
+type StakeSet @entity {
+  id: ID!
+  address: Bytes! # address
+  subcourtID: BigInt! # uint256
+  stake: BigInt! # uint128
+  newTotalStake: BigInt! # uint256
+}
+
+type Dispute @entity {
+  id: ID!,
+  "Arbitrable SC who raised the dispute"
+  arbitrable: Bytes!,
+  "wallet who raise the dispute"
+  creator: Bytes!,
+  "Subcourt ID"
+  subcourtID: BigInt!,
+  "Number of choices wihtin the dispute"
+  numberOfChoices: BigInt!,
+  "Current Period of the dispute"
+  period: Period!
+  "Timestamp of the last period change"
+  lastPeriodChange: BigInt!,
+  "Rounds in the dispute"
+  rounds: [Round!],
+  "Is ruled the case?"
+  ruled: Boolean!
+  "Current choice ruled"
+  currentRulling: BigInt,
+  "List of jurors (wallets) involved in the dispute"
+  jurorsInvolved: [Juror!],
+}
+
+type Round @entity {
+  "identifier, hash tx"
+  id: ID!,
+  "Dispute asociated to the round"
+  dispute: Dispute!,
+  "List of votes in the round"
+  votes: [Vote!]!,
+  "which choice was ruled in the case?"
+  roundRulling: BigInt!,
+  "Timestamp of the beggining of the round"
+  roundStartTime: BigInt!
+}
+
+type Vote @entity {
+  "id of the vote: disputeId-voteid"
+  id: ID!,
+  disputeID: BigInt!,
+  round: BigInt!,
+  voteID: BigInt!,
+  address: Bytes!,
+  choice: BigInt,
+  voted: Boolean!,
+  salt: BigInt,
+}
+
+type NewPeriod @entity {
+  id: ID!
+  disputeId: BigInt!,
+  newPeriod: Period!
+}
+
+type Draw @entity {
+  id: ID!,
+  address: Bytes!,
+  disputeId: BigInt!,
+  roundNumber: BigInt!,
+  voteId: BigInt!,
+}
+
+type Juror @entity {
+  "wallet of the juror"
+  id: ID!,
+  subcourtsIDs: [BigInt!],
+  totalStaked: BigInt!,
+  activeJuror: Boolean,
+  disputesAsJuror: [Dispute!],
+  numberOfDisputesCreated: BigInt!,
+  votes: [Vote!]
+}
+
+type TokenAndETHShift @entity {
+  id: ID!,
+  disputeId: BigInt!,
+  tokenAmount: BigInt!,
+  ETHAmount: BigInt!
+}
+
+## PolicyUpdate entities
+type PolicyUpdate @entity {
+  id: ID!
+  subcourtID: BigInt! # uint256
+  policy: String! # String
+  contractAddress: Bytes! # address
+  timestamp: BigInt! # uint256
+  blockNumber: BigInt! # unit256
+}

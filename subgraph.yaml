@@ -1,0 +1,60 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: KlerosLiquid
+    network: mainnet
+    source:
+      address: "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069"
+      abi: KlerosLiquid
+      startBlock: 7303699
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - StakeSet
+        - Dispute
+        - Round
+        - Vote
+        - TokenAndETHShift
+        - Period
+      abis:
+        - name: KlerosLiquid
+          file: ./abis/KlerosLiquid.json
+      eventHandlers:
+        - event: DisputeCreation(indexed uint256,indexed address)
+          handler: handleDisputeCreation
+        - event: StakeSet(indexed address,uint256,uint128,uint256)
+          handler: handleStakeSet
+        - event: Draw(indexed address,indexed uint256,uint256,uint256)
+          handler: handleDraw
+        - event: NewPeriod(indexed uint256,uint8)
+          handler: handleNewPeriod
+        - event: TokenAndETHShift(indexed address,indexed uint256,int256,int256)
+          handler: handleTokenAndETHShift
+      callHandlers:
+        - function: castVote(uint256,uint256[],uint256,uint256)
+          handler: handleCastVote
+      file: ./src/KlerosLiquidMappings.ts
+  - kind: ethereum/contract
+    name: PolicyRegistry
+    network: mainnet
+    source:
+      address: "0x03a9458d77dd705829fa758c64dbe770385295cc"
+      abi: PolicyRegistry
+      startBlock: 7303699
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - PolicyUpdate
+      abis:
+        - name: PolicyRegistry
+          file: ./abis/PolicyRegistry.json
+      eventHandlers:
+        - event: PolicyUpdate(indexed uint256,string)
+          handler: handlePolicyUpdate
+      file: ./src/PolicyRegistryMapping.ts
