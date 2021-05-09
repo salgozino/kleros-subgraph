@@ -71,6 +71,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   entity.numberOfChoices = disputeData.value2
   entity.lastPeriodChange = disputeData.value4
   entity.period = getPeriod(disputeData.value3)
+  entity.startTime = event.block.timestamp
   entity.ruled = false
   entity.save()
 }
@@ -98,6 +99,12 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   entity.newPeriod = getPeriod(event.params._period)
   entity.disputeId = event.params._disputeID
   entity.save()
+
+  // update the dispute period
+  let dispute = new Dispute(disputeID.toHex())
+  dispute.period = getPeriod(event.params._period)
+  dispute.lastPeriodChange = event.block.timestamp
+  dispute.save()
 }
 
 export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {

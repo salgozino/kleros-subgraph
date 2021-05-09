@@ -154,6 +154,15 @@ export class Dispute extends Entity {
     this.set("period", Value.fromString(value));
   }
 
+  get startTime(): BigInt {
+    let value = this.get("startTime");
+    return value.toBigInt();
+  }
+
+  set startTime(value: BigInt) {
+    this.set("startTime", Value.fromBigInt(value));
+  }
+
   get lastPeriodChange(): BigInt {
     let value = this.get("lastPeriodChange");
     return value.toBigInt();

@@ -32,6 +32,8 @@ type Dispute @entity {
   numberOfChoices: BigInt!,
   "Current Period of the dispute"
   period: Period!
+  "Timestamp when the dispute was raised"
+  startTime: BigInt!
   "Timestamp of the last period change"
   lastPeriodChange: BigInt!,
   "Rounds in the dispute"
