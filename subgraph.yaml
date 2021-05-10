@@ -34,6 +34,8 @@ dataSources:
           handler: handleNewPeriod
         - event: TokenAndETHShift(indexed address,indexed uint256,int256,int256)
           handler: handleTokenAndETHShift
+        - event: AppealDecision(indexed uint256,indexed address)
+          handler: handleAppealDecision
       callHandlers:
         - function: castVote(uint256,uint256[],uint256,uint256)
           handler: handleCastVote

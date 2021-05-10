@@ -281,22 +281,22 @@ export class Round extends Entity {
     this.set("votes", Value.fromStringArray(value));
   }
 
-  get roundRulling(): BigInt {
-    let value = this.get("roundRulling");
+  get winningChoice(): BigInt {
+    let value = this.get("winningChoice");
     return value.toBigInt();
   }
 
-  set roundRulling(value: BigInt) {
-    this.set("roundRulling", Value.fromBigInt(value));
+  set winningChoice(value: BigInt) {
+    this.set("winningChoice", Value.fromBigInt(value));
   }
 
-  get roundStartTime(): BigInt {
-    let value = this.get("roundStartTime");
+  get startTime(): BigInt {
+    let value = this.get("startTime");
     return value.toBigInt();
   }
 
-  set roundStartTime(value: BigInt) {
-    this.set("roundStartTime", Value.fromBigInt(value));
+  set startTime(value: BigInt) {
+    this.set("startTime", Value.fromBigInt(value));
   }
 }
 
@@ -339,13 +339,13 @@ export class Vote extends Entity {
     this.set("disputeID", Value.fromBigInt(value));
   }
 
-  get round(): BigInt {
+  get round(): string {
     let value = this.get("round");
-    return value.toBigInt();
+    return value.toString();
   }
 
-  set round(value: BigInt) {
-    this.set("round", Value.fromBigInt(value));
+  set round(value: string) {
+    this.set("round", Value.fromString(value));
   }
 
   get voteID(): BigInt {

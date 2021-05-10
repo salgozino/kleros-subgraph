@@ -52,18 +52,18 @@ type Round @entity {
   "Dispute asociated to the round"
   dispute: Dispute!,
   "List of votes in the round"
-  votes: [Vote!]!,
-  "which choice was ruled in the case?"
-  roundRulling: BigInt!,
+  votes: [Vote!]! @derivedFrom(field: "round")
+  "which choice wins in the round?"
+  winningChoice: BigInt!,
   "Timestamp of the beggining of the round"
-  roundStartTime: BigInt!
+  startTime: BigInt!
 }
 
 type Vote @entity {
   "id of the vote: disputeId-voteid"
   id: ID!,
   disputeID: BigInt!,
-  round: BigInt!,
+  round: Round!,
   voteID: BigInt!,
   address: Bytes!,
   choice: BigInt,

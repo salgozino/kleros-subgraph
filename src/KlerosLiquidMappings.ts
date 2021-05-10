@@ -4,6 +4,7 @@ import {
   Draw as DrawEvent,
   NewPeriod as NewPeriodEvent,
   TokenAndETHShift as TokenAndETHShiftEvent,
+  AppealDecision as AppealDecisionEvent,
   CastVoteCall,
   KlerosLiquid, CreateSubcourtCall,
   
@@ -65,6 +66,12 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   entity.arbitrable = event.params._arbitrable
   entity.creator = event.transaction.from
   
+  let round = new Round(event.params._disputeID.toHex()+"-"+BigInt.fromI32(0).toHex())
+  round.dispute = event.params._disputeID.toHex()
+  round.startTime = event.block.timestamp
+  round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
+  round.save()
+
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(event.params._disputeID)
   entity.subcourtID = disputeData.value0
@@ -73,6 +80,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   entity.period = getPeriod(disputeData.value3)
   entity.startTime = event.block.timestamp
   entity.ruled = false
+  entity.rounds = [round.id]
   entity.save()
 }
 
@@ -81,10 +89,11 @@ export function handleDraw(event: DrawEvent): void {
   let roundNumber = event.params._appeal
   let voteID = event.params._voteID
   let id = disputeID.toHex() + "-" + voteID.toHex()
+  let round = Round.load(disputeID.toHex() + "-" + roundNumber.toHex())
   let entity = new Vote(id)
   entity.address = event.params._address
   entity.disputeID = disputeID
-  entity.round = roundNumber
+  entity.round = round.id
   entity.voteID = voteID
   entity.choice = BigInt.fromI32(0)
   entity.voted = false
@@ -103,6 +112,9 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   // update the dispute period
   let dispute = Dispute.load(disputeID.toHex())
   dispute.period = getPeriod(event.params._period)
+  if (event.params._period == 4) {
+    dispute.ruled = true
+  }
   dispute.lastPeriodChange = event.block.timestamp
   
   // update current rulling
@@ -120,27 +132,49 @@ export function handleCastVote(call: CastVoteCall): void {
   let choice = call.inputs._choice
   let voteIDs = call.inputs._voteIDs
   let salt = call.inputs._salt
+  let dispute = Dispute.load(disputeID.toHex())
+  let roundNum = dispute.rounds.length -1
 
+  // update votes
   for (let i = 0; i < voteIDs.length; i++) {
     log.info("Storing the vote {} from dispute {}",[voteIDs[i].toString(), disputeID.toString()])
     let vote = Vote.load(disputeID.toHex() + "-" + voteIDs[i].toHex())
     vote.choice = choice
     vote.salt = salt
+
     vote.voted = true
     vote.save()
   } 
 
-  // update current rulling
-  let dispute = Dispute.load(disputeID.toHex())
+  // update dispute current rulling
+  
   dispute.currentRulling = getCurrentRulling(disputeID, call.from)
   dispute.save()
+
 }
 
 export function handlePolicyUpdate(event: PolicyUpdateEvent): void {
 
 }
 
-export function getPeriod(period: number): string {
+export function handleAppealDecision(event: AppealDecisionEvent): void{
+  // Event  raised when a dispute is appealed
+  let disputeID = event.params._disputeID
+  log.debug("New Appeal Decision raised for the dispute {}", [disputeID.toString()])
+  let dispute = Dispute.load(disputeID.toHex())
+  let roundNum = dispute.rounds.length
+  let round = new Round(disputeID.toHex()+"-"+BigInt.fromI32(roundNum).toHex())
+  round.dispute = dispute.id
+  round.startTime = event.block.timestamp
+  round.winningChoice = getVoteCounter(disputeID, BigInt.fromI32(roundNum), event.transaction.from)
+  round.save()
+
+  // update new round in the dispute
+  dispute.rounds.push(round.id)
+  dispute.save()
+}
+
+function getPeriod(period: number): string {
   if (period == 0) {
     return 'evidence'
   }
@@ -160,8 +194,7 @@ export function getPeriod(period: number): string {
 
 }
 
-export function getCurrentRulling(disputeID: BigInt, address: Address): BigInt {
-    // update current rulling
+function getCurrentRulling(disputeID: BigInt, address: Address): BigInt {
     log.debug("Asking current rulling in dispute {}", [disputeID.toString()])
     let contract = KlerosLiquid.bind(address)
     let callResult = contract.try_currentRuling(disputeID)
@@ -172,4 +205,17 @@ export function getCurrentRulling(disputeID: BigInt, address: Address): BigInt {
       currentRulling = callResult.value
     }
     return currentRulling
+}
+
+function getVoteCounter(disputeID: BigInt, round: BigInt, address: Address): BigInt {
+  log.debug("Asking current rulling in the round {} of the dispute {}", [round.toString(), disputeID.toString()])
+  let contract = KlerosLiquid.bind(address)
+  let callResult = contract.try_getVoteCounter(disputeID, round)
+  let winningChoice = BigInt.fromI32(0)
+  if (callResult.reverted) {
+    log.debug("voteCounter reverted", [])
+  } else {
+    winningChoice = callResult.value.value0
+  }
+  return winningChoice
 }
