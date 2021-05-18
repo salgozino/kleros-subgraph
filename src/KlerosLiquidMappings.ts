@@ -6,7 +6,7 @@ import {
   TokenAndETHShift as TokenAndETHShiftEvent,
   AppealDecision as AppealDecisionEvent,
   CastVoteCall,
-  KlerosLiquid, CreateSubcourtCall,
+  KlerosLiquid, CreateSubcourtCall, KlerosLiquid__getVoteResult,
   
 } from "../generated/KlerosLiquid/KlerosLiquid"
 import {
@@ -51,6 +51,7 @@ enum Period {
 
 
 export function handleStakeSet(event: StakeSetEvent): void {
+  log.debug("handleSetStake: creating a new setStake", [])
   let entity = new StakeSet(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   )
@@ -62,16 +63,11 @@ export function handleStakeSet(event: StakeSetEvent): void {
 }
 
 export function handleDisputeCreation(event: DisputeCreationEvent): void {
-  let entity = new Dispute(event.params._disputeID.toHex())
+  log.debug("handleDisputeCreation: Creating a new dispute with id {}", [event.params._disputeID.toString()])
+  let entity = new Dispute(event.params._disputeID.toString())
   entity.arbitrable = event.params._arbitrable
   entity.creator = event.transaction.from
-  
-  let round = new Round(event.params._disputeID.toHex()+"-"+BigInt.fromI32(0).toHex())
-  round.dispute = event.params._disputeID.toHex()
-  round.startTime = event.block.timestamp
-  round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
-  round.save()
-
+  log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(event.params._disputeID)
   entity.subcourtID = disputeData.value0
@@ -80,28 +76,80 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   entity.period = getPeriod(disputeData.value3)
   entity.startTime = event.block.timestamp
   entity.ruled = false
-  entity.rounds = [round.id]
   entity.save()
+  log.debug("handleDisputeCreation: Creating the round 0 for the dispute {}", [event.params._disputeID.toString()])
+  let round = new Round(event.params._disputeID.toString()+"-"+BigInt.fromI32(0).toString())
+  round.dispute = entity.id
+  round.startTime = event.block.timestamp
+  round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
+  round.save()
 }
 
 export function handleDraw(event: DrawEvent): void {
   let disputeID = event.params._disputeID
   let roundNumber = event.params._appeal
   let voteID = event.params._voteID
-  let id = disputeID.toHex() + "-" + voteID.toHex()
-  let round = Round.load(disputeID.toHex() + "-" + roundNumber.toHex())
-  let entity = new Vote(id)
+  log.debug("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}", [disputeID.toString(), voteID.toString(), roundNumber.toString()])
+  let drawID = disputeID.toString()+"-"+voteID.toString()
+  let drawEntity = new Draw(drawID)
+  drawEntity.address = event.params._address
+  drawEntity.disputeId = event.params._disputeID
+  drawEntity.roundNumber = event.params._appeal
+  drawEntity.voteId = voteID
+  drawEntity.timestamp = event.block.timestamp
+  drawEntity.save()
+
+  log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
+  let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())
+  let dispute = Dispute.load(disputeID.toString())
+  let entity = new Vote(drawID)
   entity.address = event.params._address
-  entity.disputeID = disputeID
+  entity.dispute = dispute.id
   entity.round = round.id
   entity.voteID = voteID
+  // define choice 0 and not voted
   entity.choice = BigInt.fromI32(0)
   entity.voted = false
   entity.save()
 }
 
-export function handleNewPeriod(event: NewPeriodEvent): void {
+export function handleCastVote(call: CastVoteCall): void {
+  let disputeID = call.inputs._disputeID
+  let voteIDs = call.inputs._voteIDs
+  log.debug("handleCastVote: Casting vote from dispute {}", [disputeID.toString()])
+  let dispute = Dispute.load(disputeID.toString())
+  if (dispute == null){
+    log.error("handleCastVote: Error trying to load the dispute with id {}. The vote will not be stored", [disputeID.toString()])
+    return
+  }
+  let roundNum = dispute.rounds.length - 1 // round number is the number of rounds in the dispute.
+  log.debug("handleCastVote: the round number is {} for the disputeID {}", [roundNum.toString(), disputeID.toString()])
   
+  // update votes
+  for (let i = 0; i < voteIDs.length; i++) {
+    let id = disputeID.toString()+"-"+voteIDs[i].toString()
+    log.debug("handleCastVote: Storing the vote {}",[id])
+    let vote = Vote.load(id)
+    if (vote == null){
+      log.error("handleCastVote: Error trying to load the vote with id {}. The vote will not be stored", [id])
+    }
+    else{
+      vote.choice = call.inputs._choice
+      vote.salt = call.inputs._salt
+      vote.voted = true
+      vote.timestamp = call.block.timestamp
+      vote.save()
+    }
+  } 
+
+  // update dispute current rulling
+  // log.debug("handleCastVote: updating current rulling in the dispute {}",[disputeID.toString()])
+  // dispute.currentRulling = getCurrentRulling(disputeID, call.to)
+  // dispute.save()
+
+}
+
+export function handleNewPeriod(event: NewPeriodEvent): void {
   let disputeID = event.params._disputeID
   log.debug("handleNewPeriod: new period for the dispute {}", [disputeID.toString()])
   let entity = new NewPeriod(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
@@ -110,7 +158,8 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   entity.save()
 
   // update the dispute period
-  let dispute = Dispute.load(disputeID.toHex())
+  log.debug("handleNewPeriod: Updating the dispute {} information", [disputeID.toString()])
+  let dispute = Dispute.load(disputeID.toString())
   dispute.period = getPeriod(event.params._period)
   if (event.params._period == 4) {
     dispute.ruled = true
@@ -120,38 +169,12 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   // update current rulling
   dispute.currentRulling = getCurrentRulling(disputeID, event.address)
   dispute.save()
-
 }
 
 export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
   
 }
 
-export function handleCastVote(call: CastVoteCall): void {
-  let disputeID = call.inputs._disputeID
-  let choice = call.inputs._choice
-  let voteIDs = call.inputs._voteIDs
-  let salt = call.inputs._salt
-  let dispute = Dispute.load(disputeID.toHex())
-  let roundNum = dispute.rounds.length -1
-
-  // update votes
-  for (let i = 0; i < voteIDs.length; i++) {
-    log.info("Storing the vote {} from dispute {}",[voteIDs[i].toString(), disputeID.toString()])
-    let vote = Vote.load(disputeID.toHex() + "-" + voteIDs[i].toHex())
-    vote.choice = choice
-    vote.salt = salt
-
-    vote.voted = true
-    vote.save()
-  } 
-
-  // update dispute current rulling
-  
-  dispute.currentRulling = getCurrentRulling(disputeID, call.from)
-  dispute.save()
-
-}
 
 export function handlePolicyUpdate(event: PolicyUpdateEvent): void {
 
@@ -160,18 +183,14 @@ export function handlePolicyUpdate(event: PolicyUpdateEvent): void {
 export function handleAppealDecision(event: AppealDecisionEvent): void{
   // Event  raised when a dispute is appealed
   let disputeID = event.params._disputeID
-  log.debug("New Appeal Decision raised for the dispute {}", [disputeID.toString()])
-  let dispute = Dispute.load(disputeID.toHex())
+  log.debug("handleAppealDecision: New Appeal Decision raised for the dispute {}", [disputeID.toString()])
+  let dispute = Dispute.load(disputeID.toString())
   let roundNum = dispute.rounds.length
-  let round = new Round(disputeID.toHex()+"-"+BigInt.fromI32(roundNum).toHex())
+  let round = new Round(disputeID.toString()+"-"+roundNum.toString())
   round.dispute = dispute.id
   round.startTime = event.block.timestamp
-  round.winningChoice = getVoteCounter(disputeID, BigInt.fromI32(roundNum), event.transaction.from)
+  round.winningChoice = BigInt.fromI32(0) // initiate in pending
   round.save()
-
-  // update new round in the dispute
-  dispute.rounds.push(round.id)
-  dispute.save()
 }
 
 function getPeriod(period: number): string {
@@ -195,12 +214,12 @@ function getPeriod(period: number): string {
 }
 
 function getCurrentRulling(disputeID: BigInt, address: Address): BigInt {
-    log.debug("Asking current rulling in dispute {}", [disputeID.toString()])
+    log.debug("getCurrentRulling: Asking current rulling in dispute {}", [disputeID.toString()])
     let contract = KlerosLiquid.bind(address)
     let callResult = contract.try_currentRuling(disputeID)
     let currentRulling = BigInt.fromI32(0)
     if (callResult.reverted) {
-      log.debug("currentRulling reverted", [])
+      log.debug("getCurrentRulling: currentRulling reverted", [])
     } else {
       currentRulling = callResult.value
     }
@@ -208,12 +227,12 @@ function getCurrentRulling(disputeID: BigInt, address: Address): BigInt {
 }
 
 function getVoteCounter(disputeID: BigInt, round: BigInt, address: Address): BigInt {
-  log.debug("Asking current rulling in the round {} of the dispute {}", [round.toString(), disputeID.toString()])
+  log.debug("getVoteCounter: Asking current rulling in the round {} of the dispute {}", [round.toString(), disputeID.toString()])
   let contract = KlerosLiquid.bind(address)
   let callResult = contract.try_getVoteCounter(disputeID, round)
   let winningChoice = BigInt.fromI32(0)
   if (callResult.reverted) {
-    log.debug("voteCounter reverted", [])
+    log.debug("getVoteCounter: reverted", [])
   } else {
     winningChoice = callResult.value.value0
   }

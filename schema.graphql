@@ -37,13 +37,15 @@ type Dispute @entity {
   "Timestamp of the last period change"
   lastPeriodChange: BigInt!,
   "Rounds in the dispute"
-  rounds: [Round!],
+  rounds: [Round!] @derivedFrom(field:"dispute")
   "Is ruled the case?"
   ruled: Boolean!
   "Current choice ruled"
   currentRulling: BigInt,
   "List of jurors (wallets) involved in the dispute"
   jurorsInvolved: [Juror!],
+  "Metaevidence of the dispute. Question and options"
+  metaevidente: String
 }
 
 type Round @entity {
@@ -62,13 +64,22 @@ type Round @entity {
 type Vote @entity {
   "id of the vote: disputeId-voteid"
   id: ID!,
-  disputeID: BigInt!,
+  "Dispute associated for this vote"
+  dispute: Dispute!,
+  "Round within the dispute where the vote is casted"
   round: Round!,
+  "Vote identificator"
   voteID: BigInt!,
+  "Address who was selected to vote"
   address: Bytes!,
+  "Choice selected"
   choice: BigInt,
+  "Boolean to indicate if the vote was casted. If not, the choice 0 indicates pending"
   voted: Boolean!,
+  "Salt of the vote"
   salt: BigInt,
+  "timestamp of the vote casted"
+  timestamp: BigInt,
 }
 
 type NewPeriod @entity {
@@ -78,21 +89,29 @@ type NewPeriod @entity {
 }
 
 type Draw @entity {
+  "drawID: disputeID-voteID"
   id: ID!,
+  "address drawn in the vote"
   address: Bytes!,
+  "dispute ID"
   disputeId: BigInt!,
+  "appeal round"
   roundNumber: BigInt!,
+  "vote ID of the vote in this dispute"
   voteId: BigInt!,
+  "timestamp when the vote was drawn"
+  timestamp: BigInt!
 }
 
 type Juror @entity {
-  "wallet of the juror"
+  "address, juror (person) maybe has multiple addresses."
   id: ID!,
   subcourtsIDs: [BigInt!],
   totalStaked: BigInt!,
   activeJuror: Boolean,
   disputesAsJuror: [Dispute!],
   numberOfDisputesCreated: BigInt!,
+  "This could be derivedFrom the Votes entity, but there should be used the jurors entity instead of bytes"
   votes: [Vote!]
 }
 

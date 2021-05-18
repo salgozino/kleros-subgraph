@@ -231,6 +231,23 @@ export class Dispute extends Entity {
       this.set("jurorsInvolved", Value.fromStringArray(value as Array<string>));
     }
   }
+
+  get metaevidente(): string | null {
+    let value = this.get("metaevidente");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toString();
+    }
+  }
+
+  set metaevidente(value: string | null) {
+    if (value === null) {
+      this.unset("metaevidente");
+    } else {
+      this.set("metaevidente", Value.fromString(value as string));
+    }
+  }
 }
 
 export class Round extends Entity {
@@ -330,13 +347,13 @@ export class Vote extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get disputeID(): BigInt {
-    let value = this.get("disputeID");
-    return value.toBigInt();
+  get dispute(): string {
+    let value = this.get("dispute");
+    return value.toString();
   }
 
-  set disputeID(value: BigInt) {
-    this.set("disputeID", Value.fromBigInt(value));
+  set dispute(value: string) {
+    this.set("dispute", Value.fromString(value));
   }
 
   get round(): string {
@@ -406,6 +423,23 @@ export class Vote extends Entity {
       this.unset("salt");
     } else {
       this.set("salt", Value.fromBigInt(value as BigInt));
+    }
+  }
+
+  get timestamp(): BigInt | null {
+    let value = this.get("timestamp");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set timestamp(value: BigInt | null) {
+    if (value === null) {
+      this.unset("timestamp");
+    } else {
+      this.set("timestamp", Value.fromBigInt(value as BigInt));
     }
   }
 }
@@ -523,6 +557,15 @@ export class Draw extends Entity {
 
   set voteId(value: BigInt) {
     this.set("voteId", Value.fromBigInt(value));
+  }
+
+  get timestamp(): BigInt {
+    let value = this.get("timestamp");
+    return value.toBigInt();
+  }
+
+  set timestamp(value: BigInt) {
+    this.set("timestamp", Value.fromBigInt(value));
   }
 }
 
