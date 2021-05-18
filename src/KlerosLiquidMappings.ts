@@ -75,13 +75,15 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   entity.lastPeriodChange = disputeData.value4
   entity.period = getPeriod(disputeData.value3)
   entity.startTime = event.block.timestamp
-  entity.ruled = false
+  entity.ruled = disputeData.value7
+  log.debug("handleDisputeCreation: saving dispute {} entity",[event.params._disputeID.toString()])
   entity.save()
   log.debug("handleDisputeCreation: Creating the round 0 for the dispute {}", [event.params._disputeID.toString()])
   let round = new Round(event.params._disputeID.toString()+"-"+BigInt.fromI32(0).toString())
   round.dispute = entity.id
   round.startTime = event.block.timestamp
   round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
+  log.debug("handleDisputeCreation: saving the round 0 for the dispute {}", [event.params._disputeID.toString()])
   round.save()
 }
 
