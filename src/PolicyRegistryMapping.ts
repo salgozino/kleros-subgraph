@@ -21,7 +21,8 @@ import {
   } from "../generated/schema"
 
 export function handlePolicyUpdate(event: NewPolicyUpdateEvent): void {
-    let entity = new PolicyUpdate(
+  log.debug("Updating the policy of subcourt {}",[event.params._subcourtID.toString()])  
+  let entity = new PolicyUpdate(
         event.transaction.hash.toHex() + "-" + event.logIndex.toString()
     )
     entity.subcourtID = event.params._subcourtID

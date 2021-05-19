@@ -36,11 +36,6 @@ import {
 
 
 // Phase constants
-// const EVIDENCE = 'evidence';
-// const COMMIT = 'commit';
-// const VOTE = 'vote';
-// const APPEAL = 'appeal';
-// const EXECUTION = 'execution';
 enum Period {
   evidence = 0,
   commit,
@@ -145,10 +140,9 @@ export function handleCastVote(call: CastVoteCall): void {
   } 
 
   // update dispute current rulling
-  // log.debug("handleCastVote: updating current rulling in the dispute {}",[disputeID.toString()])
-  // dispute.currentRulling = getCurrentRulling(disputeID, call.to)
-  // dispute.save()
-
+  log.debug("handleCastVote: updating current rulling in the dispute {}",[disputeID.toString()])
+  dispute.currentRulling = getCurrentRulling(disputeID, call.to)
+  dispute.save()
 }
 
 export function handleNewPeriod(event: NewPeriodEvent): void {
