@@ -228,23 +228,6 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
   
 }
 
-
-export function handlePolicyUpdate(event: PolicyUpdateEvent): void {
-  log.debug("handlePolicyUpdate: Creating a new policy registry for subcourt {}", [event.params._subcourtID.toString()])
-  let policy = new PolicyUpdate(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
-  policy.subcourtID = event.params._subcourtID
-  policy.timestamp = event.block.timestamp
-  policy.policy = event.params._policy
-  policy.blockNumber = event.block.number
-  policy.contractAddress = event.address
-  policy.save()
-
-  log.debug("handlePolicyUpdate: Updating policy in court", [])
-  let court = getOrCreateCourt(event.params._subcourtID, event.address)
-  court.policy = policy.id
-  court.save()
-}
-
 export function handleAppealDecision(event: AppealDecisionEvent): void{
   // Event  raised when a dispute is appealed
   let disputeID = event.params._disputeID
@@ -399,7 +382,7 @@ function getOrInitializeKlerosCounter(): KlerosCounter {
   return kc!
 }
 
-function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court {
+export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court {
   log.debug("getOrCreateCourt: Loading court {}",[subcourtID.toString()])
   let court = Court.load(subcourtID.toString())
   if (court == null){
