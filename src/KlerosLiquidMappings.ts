@@ -211,7 +211,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     kc.save()
   } else if (event.params._period==2){
     log.debug("handleNewPeriod: Updating kleros counter parameters in period 2", [])
-    // moving to voting phase (from the appeal phase)
+    // moving to voting phase (from the evidence phase)
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
     kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
@@ -274,6 +274,12 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   round.startTime = event.block.timestamp
   round.winningChoice = BigInt.fromI32(0) // initiate in pending
   round.save()
+
+  // Update KlerosCounters
+  let kc = getOrInitializeKlerosCounter()
+  kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
+  kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
+  kc.save()
 }
 
 export function handleCreateSubcourt(call: CreateSubcourtCall): void {
