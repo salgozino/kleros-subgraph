@@ -6,8 +6,14 @@ import {
   TokenAndETHShift as TokenAndETHShiftEvent,
   AppealDecision as AppealDecisionEvent,
   CastVoteCall,
-  KlerosLiquid, CreateSubcourtCall
-  
+  KlerosLiquid, 
+  CreateSubcourtCall,
+  ExecuteCall,
+  ChangeSubcourtMinStakeCall,
+  ChangeSubcourtAlphaCall,
+  ChangeSubcourtJurorFeeCall,
+  ChangeSubcourtJurorsForJumpCall,
+  ChangeSubcourtTimesPerPeriodCall
 } from "../generated/KlerosLiquid/KlerosLiquid"
 import {
   PolicyRegistry,
@@ -278,6 +284,44 @@ export function handleCreateSubcourt(call: CreateSubcourtCall): void {
   getOrCreateCourt(kc.courtsCount, call.to)
   // if the court it's created, the counter of KlerosCounter is incremented wihtin the getorCreateCourt
 }
+
+
+export function handleChangeSubcourtMinStake(call: ChangeSubcourtMinStakeCall): void {
+  log.debug("handleChangeSubcourtMinStake: Updating minstake of court {}", [call.inputs._subcourtID.toString()])
+  let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
+  court.minStake = call.inputs._minStake
+  court.save()
+}
+
+export function handleChangeSubcourtAlpha(call: ChangeSubcourtAlphaCall): void {
+  log.debug("handleChangeSubcourtAlpha: Updating alpha of court {}", [call.inputs._subcourtID.toString()])
+  let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
+  court.alpha = call.inputs._alpha
+  court.save()
+}
+
+export function handleChangeSubcourtJurorFee(call: ChangeSubcourtJurorFeeCall): void {
+  log.debug("handleChangeSubcourtJurorFee: Updating jurorfees of court {}", [call.inputs._subcourtID.toString()])
+  let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
+  court.feeForJuror = call.inputs._feeForJuror
+  court.save()
+}
+
+export function handleChangeSubcourtJurorsForJump(call: ChangeSubcourtJurorsForJumpCall): void {
+  log.debug("handleChangeSubcourtJurorsForJump: Updating jurorforJump of court {}", [call.inputs._subcourtID.toString()])
+  let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
+  court.jurorsForCourtJump = call.inputs._jurorsForCourtJump
+  court.save()
+}
+
+export function handleChangeSubcourtTimesPerPeriod(call: ChangeSubcourtTimesPerPeriodCall): void {
+  log.debug("handleChangeSubcourtTimesPerPeriod: Updating timesPerPeriod of court {}", [call.inputs._subcourtID.toString()])
+  let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
+  court.timePeriods = call.inputs._timesPerPeriod
+  court.save()
+}
+
+
 
 // Helper functions
 function getPeriod(period: number): string {
