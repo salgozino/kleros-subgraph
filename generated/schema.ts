@@ -12,6 +12,351 @@ import {
   BigDecimal
 } from "@graphprotocol/graph-ts";
 
+export class Court extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save Court entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save Court entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("Court", id.toString(), this);
+  }
+
+  static load(id: string): Court | null {
+    return store.get("Court", id) as Court | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get subcourtID(): BigInt {
+    let value = this.get("subcourtID");
+    return value.toBigInt();
+  }
+
+  set subcourtID(value: BigInt) {
+    this.set("subcourtID", Value.fromBigInt(value));
+  }
+
+  get disputesNum(): BigInt {
+    let value = this.get("disputesNum");
+    return value.toBigInt();
+  }
+
+  set disputesNum(value: BigInt) {
+    this.set("disputesNum", Value.fromBigInt(value));
+  }
+
+  get disputesClosed(): BigInt {
+    let value = this.get("disputesClosed");
+    return value.toBigInt();
+  }
+
+  set disputesClosed(value: BigInt) {
+    this.set("disputesClosed", Value.fromBigInt(value));
+  }
+
+  get disputesOngoing(): BigInt {
+    let value = this.get("disputesOngoing");
+    return value.toBigInt();
+  }
+
+  set disputesOngoing(value: BigInt) {
+    this.set("disputesOngoing", Value.fromBigInt(value));
+  }
+
+  get disputes(): Array<string> | null {
+    let value = this.get("disputes");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set disputes(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("disputes");
+    } else {
+      this.set("disputes", Value.fromStringArray(value as Array<string>));
+    }
+  }
+
+  get jurors(): Array<string> | null {
+    let value = this.get("jurors");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set jurors(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("jurors");
+    } else {
+      this.set("jurors", Value.fromStringArray(value as Array<string>));
+    }
+  }
+
+  get childs(): Array<string> | null {
+    let value = this.get("childs");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set childs(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("childs");
+    } else {
+      this.set("childs", Value.fromStringArray(value as Array<string>));
+    }
+  }
+
+  get parent(): string | null {
+    let value = this.get("parent");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toString();
+    }
+  }
+
+  set parent(value: string | null) {
+    if (value === null) {
+      this.unset("parent");
+    } else {
+      this.set("parent", Value.fromString(value as string));
+    }
+  }
+
+  get policy(): string | null {
+    let value = this.get("policy");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toString();
+    }
+  }
+
+  set policy(value: string | null) {
+    if (value === null) {
+      this.unset("policy");
+    } else {
+      this.set("policy", Value.fromString(value as string));
+    }
+  }
+
+  get activeJurors(): BigInt {
+    let value = this.get("activeJurors");
+    return value.toBigInt();
+  }
+
+  set activeJurors(value: BigInt) {
+    this.set("activeJurors", Value.fromBigInt(value));
+  }
+
+  get tokenStaked(): BigInt {
+    let value = this.get("tokenStaked");
+    return value.toBigInt();
+  }
+
+  set tokenStaked(value: BigInt) {
+    this.set("tokenStaked", Value.fromBigInt(value));
+  }
+
+  get hiddenVotes(): boolean {
+    let value = this.get("hiddenVotes");
+    return value.toBoolean();
+  }
+
+  set hiddenVotes(value: boolean) {
+    this.set("hiddenVotes", Value.fromBoolean(value));
+  }
+
+  get minStake(): BigInt {
+    let value = this.get("minStake");
+    return value.toBigInt();
+  }
+
+  set minStake(value: BigInt) {
+    this.set("minStake", Value.fromBigInt(value));
+  }
+
+  get alpha(): BigInt {
+    let value = this.get("alpha");
+    return value.toBigInt();
+  }
+
+  set alpha(value: BigInt) {
+    this.set("alpha", Value.fromBigInt(value));
+  }
+
+  get feeForJuror(): BigInt {
+    let value = this.get("feeForJuror");
+    return value.toBigInt();
+  }
+
+  set feeForJuror(value: BigInt) {
+    this.set("feeForJuror", Value.fromBigInt(value));
+  }
+
+  get jurorsForCourtJump(): BigInt {
+    let value = this.get("jurorsForCourtJump");
+    return value.toBigInt();
+  }
+
+  set jurorsForCourtJump(value: BigInt) {
+    this.set("jurorsForCourtJump", Value.fromBigInt(value));
+  }
+
+  get timePeriods(): Array<BigInt> {
+    let value = this.get("timePeriods");
+    return value.toBigIntArray();
+  }
+
+  set timePeriods(value: Array<BigInt>) {
+    this.set("timePeriods", Value.fromBigIntArray(value));
+  }
+}
+
+export class KlerosCounter extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save KlerosCounter entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save KlerosCounter entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("KlerosCounter", id.toString(), this);
+  }
+
+  static load(id: string): KlerosCounter | null {
+    return store.get("KlerosCounter", id) as KlerosCounter | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get courtsCount(): BigInt {
+    let value = this.get("courtsCount");
+    return value.toBigInt();
+  }
+
+  set courtsCount(value: BigInt) {
+    this.set("courtsCount", Value.fromBigInt(value));
+  }
+
+  get disputesCount(): BigInt {
+    let value = this.get("disputesCount");
+    return value.toBigInt();
+  }
+
+  set disputesCount(value: BigInt) {
+    this.set("disputesCount", Value.fromBigInt(value));
+  }
+
+  get openDisputes(): BigInt {
+    let value = this.get("openDisputes");
+    return value.toBigInt();
+  }
+
+  set openDisputes(value: BigInt) {
+    this.set("openDisputes", Value.fromBigInt(value));
+  }
+
+  get closedDisputes(): BigInt {
+    let value = this.get("closedDisputes");
+    return value.toBigInt();
+  }
+
+  set closedDisputes(value: BigInt) {
+    this.set("closedDisputes", Value.fromBigInt(value));
+  }
+
+  get evidencePhaseDisputes(): BigInt {
+    let value = this.get("evidencePhaseDisputes");
+    return value.toBigInt();
+  }
+
+  set evidencePhaseDisputes(value: BigInt) {
+    this.set("evidencePhaseDisputes", Value.fromBigInt(value));
+  }
+
+  get votingPhaseDisputes(): BigInt {
+    let value = this.get("votingPhaseDisputes");
+    return value.toBigInt();
+  }
+
+  set votingPhaseDisputes(value: BigInt) {
+    this.set("votingPhaseDisputes", Value.fromBigInt(value));
+  }
+
+  get appealPhaseDisputes(): BigInt {
+    let value = this.get("appealPhaseDisputes");
+    return value.toBigInt();
+  }
+
+  set appealPhaseDisputes(value: BigInt) {
+    this.set("appealPhaseDisputes", Value.fromBigInt(value));
+  }
+
+  get activeJurors(): BigInt {
+    let value = this.get("activeJurors");
+    return value.toBigInt();
+  }
+
+  set activeJurors(value: BigInt) {
+    this.set("activeJurors", Value.fromBigInt(value));
+  }
+
+  get inactiveJurors(): BigInt {
+    let value = this.get("inactiveJurors");
+    return value.toBigInt();
+  }
+
+  set inactiveJurors(value: BigInt) {
+    this.set("inactiveJurors", Value.fromBigInt(value));
+  }
+
+  get tokenStaked(): BigInt {
+    let value = this.get("tokenStaked");
+    return value.toBigInt();
+  }
+
+  set tokenStaked(value: BigInt) {
+    this.set("tokenStaked", Value.fromBigInt(value));
+  }
+}
+
 export class StakeSet extends Entity {
   constructor(id: string) {
     super();
@@ -127,13 +472,13 @@ export class Dispute extends Entity {
     this.set("creator", Value.fromBytes(value));
   }
 
-  get subcourtID(): BigInt {
+  get subcourtID(): string {
     let value = this.get("subcourtID");
-    return value.toBigInt();
+    return value.toString();
   }
 
-  set subcourtID(value: BigInt) {
-    this.set("subcourtID", Value.fromBigInt(value));
+  set subcourtID(value: string) {
+    this.set("subcourtID", Value.fromString(value));
   }
 
   get numberOfChoices(): BigInt {
@@ -599,20 +944,20 @@ export class Juror extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get subcourtsIDs(): Array<BigInt> | null {
+  get subcourtsIDs(): Array<string> | null {
     let value = this.get("subcourtsIDs");
     if (value === null || value.kind == ValueKind.NULL) {
       return null;
     } else {
-      return value.toBigIntArray();
+      return value.toStringArray();
     }
   }
 
-  set subcourtsIDs(value: Array<BigInt> | null) {
+  set subcourtsIDs(value: Array<string> | null) {
     if (value === null) {
       this.unset("subcourtsIDs");
     } else {
-      this.set("subcourtsIDs", Value.fromBigIntArray(value as Array<BigInt>));
+      this.set("subcourtsIDs", Value.fromStringArray(value as Array<string>));
     }
   }
 

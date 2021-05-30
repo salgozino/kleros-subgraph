@@ -6,7 +6,7 @@ import {
   TokenAndETHShift as TokenAndETHShiftEvent,
   AppealDecision as AppealDecisionEvent,
   CastVoteCall,
-  KlerosLiquid, CreateSubcourtCall, KlerosLiquid__getVoteResult,
+  KlerosLiquid, CreateSubcourtCall
   
 } from "../generated/KlerosLiquid/KlerosLiquid"
 import {
@@ -16,10 +16,11 @@ import {
   StakeSet,
   Draw,
   NewPeriod,
-  TokenAndETHShift,
   Vote,
   Round,
-  Dispute
+  Dispute,
+  Court,
+  KlerosCounter
 } from "../generated/schema"
 import {
   log,
@@ -66,7 +67,8 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toHex()])
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(event.params._disputeID)
-  entity.subcourtID = disputeData.value0
+  let court = getOrCreateCourt(disputeData.value0, event.address)
+  entity.subcourtID = court.id
   entity.numberOfChoices = disputeData.value2
   entity.lastPeriodChange = disputeData.value4
   entity.period = getPeriod(disputeData.value3)
@@ -217,6 +219,20 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   round.save()
 }
 
+export function handleCreateSubcourt(call: CreateSubcourtCall): void {
+  log.debug("handleCreateSubcourt: Asking for current court count", [])
+  let kc = getOrInitializeKlerosCounter()
+  
+  log.debug("handleCreateSubcourt: Creating new court with id {}", [kc.courtsCount.toString()])
+  getOrCreateCourt(kc.courtsCount, call.to)
+  
+  // update court counter
+  kc.courtsCount = kc.courtsCount.plus(BigInt.fromI32(1))
+  kc.save();
+ 
+}
+
+// Helper functions
 function getPeriod(period: number): string {
   log.debug("getPeriod function: Asking period of number {}", [period.toString()])
   if (period == 0) {
@@ -262,4 +278,69 @@ function getVoteCounter(disputeID: BigInt, round: BigInt, address: Address): Big
     winningChoice = callResult.value.value0
   }
   return winningChoice
+}
+
+function getOrInitializeKlerosCounter(): KlerosCounter {
+  let kc = KlerosCounter.load('ID')
+  if (kc == null) {
+    log.debug("getOrInitializeKlerosCounter: Initializing counters",[])
+    kc = new KlerosCounter('ID')
+    kc.courtsCount = BigInt.fromI32(0),
+    kc.disputesCount = BigInt.fromI32(0),
+    kc.openDisputes = BigInt.fromI32(0),
+    kc.closedDisputes = BigInt.fromI32(0),
+    kc.evidencePhaseDisputes = BigInt.fromI32(0),
+    kc.votingPhaseDisputes = BigInt.fromI32(0),
+    kc.appealPhaseDisputes = BigInt.fromI32(0),
+    kc.activeJurors = BigInt.fromI32(0),
+    kc.inactiveJurors = BigInt.fromI32(0),
+    kc.tokenStaked = BigInt.fromI32(0)
+    kc.save()
+  } else{
+    log.debug("getOrInitializeKlerosCounter: counters loaded",[])
+  }
+  return kc!
+}
+
+function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court {
+  let court = Court.load(subcourtID.toString())
+  log.debug("getOrCreateCourt: Loading court {}",[court.id])
+  if (court == null){
+    court = new Court(subcourtID.toString())
+    log.debug("getOrCreateCourt: Creating court {}",[court.id])
+    court.subcourtID = subcourtID
+    court.childs = []
+    court.disputesNum = BigInt.fromI32(0)
+    court.disputesClosed = BigInt.fromI32(0)
+    court.disputesOngoing = BigInt.fromI32(0)
+    court.activeJurors = BigInt.fromI32(0)
+    court.tokenStaked = BigInt.fromI32(0)
+    // get courtInputs from contract
+    log.debug("getOrCreateCourt: Asking to the contract the parameters",[])
+    let contract = KlerosLiquid.bind(KLContract)
+    let courtObj = contract.courts(subcourtID)
+    court.hiddenVotes =  courtObj.value1
+    court.minStake = courtObj.value2
+    court.alpha = courtObj.value3
+    court.feeForJuror = courtObj.value4
+    court.jurorsForCourtJump = courtObj.value5
+    // get timePeriods
+    let subcourtObj = contract.getSubcourt(subcourtID)
+    court.timePeriods = subcourtObj.value1
+    
+    let parentCourtID = courtObj.value0
+    if (parentCourtID != subcourtID){
+      let parentCourt = getOrCreateCourt(parentCourtID,KLContract)
+      court.parent = parentCourt.id
+      // updating childs in parent court
+      let childs = parentCourt.childs
+      childs.push(court.id)
+      parentCourt.childs = childs
+      parentCourt.save()
+    }
+
+    log.debug("getOrCreateCourt: Saving court",[])
+    court.save() 
+  }
+  return court!
 }
