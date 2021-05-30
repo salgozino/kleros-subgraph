@@ -62,6 +62,7 @@ export function handleStakeSet(event: StakeSetEvent): void {
 export function handleDisputeCreation(event: DisputeCreationEvent): void {
   log.debug("handleDisputeCreation: Creating a new dispute with id {}", [event.params._disputeID.toString()])
   let entity = new Dispute(event.params._disputeID.toString())
+  entity.disputeID = event.params._disputeID
   entity.arbitrable = event.params._arbitrable
   entity.creator = event.transaction.from
   log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])

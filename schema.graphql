@@ -63,6 +63,8 @@ type StakeSet @entity {
 
 type Dispute @entity {
   id: ID!,
+  "Dispute Number"
+  disputeID: BigInt!,
   "Arbitrable SC who raised the dispute"
   arbitrable: Bytes!,
   "wallet who raise the dispute"

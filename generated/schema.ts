@@ -454,6 +454,15 @@ export class Dispute extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get disputeID(): BigInt {
+    let value = this.get("disputeID");
+    return value.toBigInt();
+  }
+
+  set disputeID(value: BigInt) {
+    this.set("disputeID", Value.fromBigInt(value));
+  }
+
   get arbitrable(): Bytes {
     let value = this.get("arbitrable");
     return value.toBytes();
