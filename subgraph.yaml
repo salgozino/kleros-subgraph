@@ -39,6 +39,18 @@ dataSources:
       callHandlers:
         - function: castVote(uint256,uint256[],uint256,uint256)
           handler: handleCastVote
+        - function: executeRuling(uint256)
+          handler: handleExecuteRuling
+        - function: changeSubcourtMinStake(uint96,uint256)
+          handler: handleChangeSubcourtMinStake
+        - function: changeSubcourtAlpha(uint96,uint256)
+          handler: handleChangeSubcourtAlpha
+        - function: changeSubcourtJurorFee(uint96,uint256)
+          handler: handleChangeSubcourtJurorFee
+        - function: changeSubcourtJurorsForJump(uint96,uint256)
+          handler: handleChangeSubcourtJurorsForJump
+        - function: changeSubcourtTimesPerPeriod(uint96,uint256[4])
+          handler: handleChangeSubcourtTimesPerPeriod
       file: ./src/KlerosLiquidMappings.ts
   - kind: ethereum/contract
     name: PolicyRegistry
