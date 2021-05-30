@@ -13,7 +13,8 @@ import {
   ChangeSubcourtAlphaCall,
   ChangeSubcourtJurorFeeCall,
   ChangeSubcourtJurorsForJumpCall,
-  ChangeSubcourtTimesPerPeriodCall
+  ChangeSubcourtTimesPerPeriodCall,
+  ExecuteRulingCall
 } from "../generated/KlerosLiquid/KlerosLiquid"
 import {
   PolicyRegistry,
@@ -310,7 +311,9 @@ export function handleChangeSubcourtTimesPerPeriod(call: ChangeSubcourtTimesPerP
   court.save()
 }
 
-
+export function handleExecuteRuling(call: ExecuteRulingCall): void{
+  log.debug("handleExecuteRuling: Doing nothing here...",[])
+}
 
 // Helper functions
 function getPeriod(period: number): string {

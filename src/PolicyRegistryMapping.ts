@@ -1,16 +1,6 @@
 import {
     log,
-    TypedMap,
-    Entity,
-    Value,
-    ValueKind,
-    store,
     Address,
-    Bytes,
-    BigInt,
-    BigDecimal,
-    json,
-    ipfs
   } from "@graphprotocol/graph-ts";
   
 import {
@@ -36,7 +26,8 @@ export function handlePolicyUpdate(event: NewPolicyUpdateEvent): void {
     entity.save()
     
     log.debug("handlePolicyUpdate: Updating policy in the court", [])
-    let court = getOrCreateCourt(event.params._subcourtID, event.address)
-    court.policy = entity.id
-    court.save()
+    // this should not be the event.address
+    // let court = getOrCreateCourt(event.params._subcourtID, event.address)
+    // court.policy = entity.id
+    // court.save()
 }
