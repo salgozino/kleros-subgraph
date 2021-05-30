@@ -90,6 +90,12 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
   log.debug("handleDisputeCreation: saving the round 0 for the dispute {}", [event.params._disputeID.toString()])
   round.save()
+
+  //update counters
+  let kc = getOrInitializeKlerosCounter()
+  kc.openDisputes = kc.openDisputes.plus(BigInt.fromI32(1))
+  kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
+  kc.save()
 }
 
 export function handleDraw(event: DrawEvent): void {
@@ -174,13 +180,31 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     return
   }
   dispute.period = getPeriod(event.params._period)
+  let kc = getOrInitializeKlerosCounter()
   if (event.params._period == 4) {
     dispute.ruled = true
     let court = Court.load(dispute.subcourtID)
+    log.debug("handleNewPeriod: Updating disputes ongoing and closed in court {}", [court.id])
     court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
     court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
     court.save()
+    // update counters
+    kc.openDisputes = kc.openDisputes.minus(BigInt.fromI32(1))
+    kc.closedDisputes = kc.closedDisputes.plus(BigInt.fromI32(1))
+    kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
+    kc.save()
+  } else if (event.params._period==3){
+    // moving to appeal phase
+    kc.appealPhaseDisputes = kc.appealPhaseDisputes.plus(BigInt.fromI32(1))
+    kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
+    kc.save()
+  } else if (event.params._period==2){
+    // moving to voting phase (from the appeal phase)
+    kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
+    kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
+    kc.save()
   }
+  
   dispute.lastPeriodChange = event.block.timestamp
   
   // update current rulling
