@@ -10,6 +10,7 @@ import {
   
 } from "../generated/KlerosLiquid/KlerosLiquid"
 import {
+  PolicyRegistry,
   PolicyUpdate as PolicyUpdateEvent
 } from "../generated/PolicyRegistry/PolicyRegistry"
 import {
@@ -20,7 +21,8 @@ import {
   Round,
   Dispute,
   Court,
-  KlerosCounter
+  KlerosCounter,
+  PolicyUpdate
 } from "../generated/schema"
 import {
   log,
@@ -44,7 +46,6 @@ enum Period {
   appeal,
   execution
 }
-
 
 export function handleStakeSet(event: StakeSetEvent): void {
   log.debug("handleSetStake: creating a new setStake", [])
@@ -93,6 +94,8 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
 
   //update counters
   let kc = getOrInitializeKlerosCounter()
+  log.debug("handleDisputeCreation: Updating KlerosCounters", [])
+  kc.disputesCount = kc.disputesCount.plus(BigInt.fromI32(1))
   kc.openDisputes = kc.openDisputes.plus(BigInt.fromI32(1))
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   kc.save()
@@ -189,16 +192,19 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
     court.save()
     // update counters
+    log.debug("handleNewPeriod: Updating kleros counter parameters in period 4", [])
     kc.openDisputes = kc.openDisputes.minus(BigInt.fromI32(1))
     kc.closedDisputes = kc.closedDisputes.plus(BigInt.fromI32(1))
     kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
   } else if (event.params._period==3){
     // moving to appeal phase
+    log.debug("handleNewPeriod: Updating kleros counter parameters in period 3", [])
     kc.appealPhaseDisputes = kc.appealPhaseDisputes.plus(BigInt.fromI32(1))
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
   } else if (event.params._period==2){
+    log.debug("handleNewPeriod: Updating kleros counter parameters in period 2", [])
     // moving to voting phase (from the appeal phase)
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
     kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
@@ -218,7 +224,19 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
 
 
 export function handlePolicyUpdate(event: PolicyUpdateEvent): void {
+  log.debug("handlePolicyUpdate: Creating a new policy registry for subcourt {}", [event.params._subcourtID.toString()])
+  let policy = new PolicyUpdate(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  policy.subcourtID = event.params._subcourtID
+  policy.timestamp = event.block.timestamp
+  policy.policy = event.params._policy
+  policy.blockNumber = event.block.number
+  policy.contractAddress = event.address
+  policy.save()
 
+  log.debug("handlePolicyUpdate: Updating policy in court", [])
+  let court = getOrCreateCourt(event.params._subcourtID, event.address)
+  court.policy = policy.id
+  court.save()
 }
 
 export function handleAppealDecision(event: AppealDecisionEvent): void{
