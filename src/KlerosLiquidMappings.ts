@@ -258,7 +258,11 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   round.startTime = event.block.timestamp
   round.winningChoice = BigInt.fromI32(0) // initiate in pending
   round.save()
-
+  // Check if dispute is not jumped to parent court
+  let contract = KlerosLiquid.bind(event.address)
+  let disputeData = contract.disputes(disputeID)
+  let court = getOrCreateCourt(disputeData.value0, event.address)
+  dispute.subcourtID = court.id
   // Update KlerosCounters
   let kc = getOrInitializeKlerosCounter()
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
