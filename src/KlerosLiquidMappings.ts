@@ -261,8 +261,19 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   // Check if dispute is not jumped to parent court
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(disputeID)
+  
+  let oldcourt = Court.load(dispute.subcourtID)
   let court = getOrCreateCourt(disputeData.value0, event.address)
-  dispute.subcourtID = court.id
+  if (oldcourt != court){
+    log.debug("handleAppealDecision: Court Jump!", [])
+    dispute.subcourtID = court.id
+    // update oldcourt counters
+    oldcourt.disputesOngoing = oldcourt.disputesOngoing.minus(BigInt.fromI32(1))
+    oldcourt.disputesNum = oldcourt.disputesNum.minus(BigInt.fromI32(1))
+    // update new court counters
+    court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
+    court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
+  }
   // Update KlerosCounters
   let kc = getOrInitializeKlerosCounter()
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
