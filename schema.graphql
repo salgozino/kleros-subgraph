@@ -12,6 +12,47 @@ enum Period {
   execution
 }
 
+type Court @entity {
+  id: ID!
+  subcourtID: BigInt!
+  disputesNum: BigInt!
+  disputesClosed: BigInt!
+  disputesOngoing: BigInt!
+  disputes: [Dispute!] @derivedFrom(field:"subcourtID")
+  jurors: [Juror!] @derivedFrom(field:"subcourtsIDs")
+
+  childs: [Court!]
+  parent: Court
+  policy: PolicyUpdate
+
+  activeJurors: BigInt!
+  "Total amount of pnk staked in this court"
+  tokenStaked: BigInt!
+  
+  hiddenVotes: Boolean!
+  minStake: BigInt!
+  alpha: BigInt!
+  feeForJuror: BigInt!
+  jurorsForCourtJump: BigInt!
+  timePeriods: [BigInt!]!
+}
+
+type KlerosCounter @entity {
+  "id = ID"
+  id: ID!
+  "Amount of Courts available"
+  courtsCount: BigInt!,
+  disputesCount: BigInt!,
+  openDisputes: BigInt!,
+  closedDisputes: BigInt!,
+  evidencePhaseDisputes: BigInt!,
+  votingPhaseDisputes: BigInt!,
+  appealPhaseDisputes: BigInt!,
+  activeJurors: BigInt!,
+  inactiveJurors: BigInt!,
+  tokenStaked: BigInt!,
+}
+
 type StakeSet @entity {
   id: ID!
   address: Bytes! # address
@@ -22,12 +63,14 @@ type StakeSet @entity {
 
 type Dispute @entity {
   id: ID!,
+  "Dispute Number"
+  disputeID: BigInt!,
   "Arbitrable SC who raised the dispute"
   arbitrable: Bytes!,
   "wallet who raise the dispute"
   creator: Bytes!,
-  "Subcourt ID"
-  subcourtID: BigInt!,
+  "Court where the dispute is handled"
+  subcourtID: Court!,
   "Number of choices wihtin the dispute"
   numberOfChoices: BigInt!,
   "Current Period of the dispute"
@@ -106,7 +149,8 @@ type Draw @entity {
 type Juror @entity {
   "address, juror (person) maybe has multiple addresses."
   id: ID!,
-  subcourtsIDs: [BigInt!],
+  "Courts where the juror has stake"
+  subcourtsIDs: [Court!],
   totalStaked: BigInt!,
   activeJuror: Boolean,
   disputesAsJuror: [Dispute!],
