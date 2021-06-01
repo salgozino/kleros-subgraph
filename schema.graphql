@@ -14,26 +14,39 @@ enum Period {
 
 type Court @entity {
   id: ID!
+  "Court Identificator (int), for ordering"
   subcourtID: BigInt!
+  "Total of disputes handled by this court"
   disputesNum: BigInt!
+  "Number of disputes already closed"
   disputesClosed: BigInt!
+  "Number of disputes without rulling"
   disputesOngoing: BigInt!
+  "List of disputes on this court"
   disputes: [Dispute!] @derivedFrom(field:"subcourtID")
+  "List of jurors of this court"
   jurors: [Juror!] @derivedFrom(field:"subcourtsIDs")
-
+  "Court childrens"
   childs: [Court!]
+  "Parent Court"
   parent: Court
+  "Current policy for this Court"
   policy: PolicyUpdate
-
+  "Number of active jurors in this court"
   activeJurors: BigInt!
   "Total amount of pnk staked in this court"
   tokenStaked: BigInt!
-  
+  "hiddenVotes property"
   hiddenVotes: Boolean!
+  "minimum amount of tokens that can be staked"
   minStake: BigInt!
+  "Alpha"
   alpha: BigInt!
+  "Fee paid for coherent juror"
   feeForJuror: BigInt!
+  "Number of jurors to jump to parent court"
   jurorsForCourtJump: BigInt!
+  "Time perids of this court"
   timePeriods: [BigInt!]!
 }
 
@@ -42,23 +55,72 @@ type KlerosCounter @entity {
   id: ID!
   "Amount of Courts available"
   courtsCount: BigInt!,
+  "Total Disputes raised"
   disputesCount: BigInt!,
+  "Total open disputes"
   openDisputes: BigInt!,
+  "Total closed disputes"
   closedDisputes: BigInt!,
+  "Number of Disputes in evidence period"
   evidencePhaseDisputes: BigInt!,
+  "Number of Disputes in voting period"
   votingPhaseDisputes: BigInt!,
+  "Number of Disputes in appeal period"
   appealPhaseDisputes: BigInt!,
+  "Number of active jurors"
   activeJurors: BigInt!,
+  "Number of inactive jurors"
   inactiveJurors: BigInt!,
+  "Total tokens staked in the courts"
   tokenStaked: BigInt!,
 }
 
 type StakeSet @entity {
   id: ID!
-  address: Bytes! # address
+  address: Juror! # address
   subcourtID: BigInt! # uint256
   stake: BigInt! # uint128
   newTotalStake: BigInt! # uint256
+}
+
+type Juror @entity {
+  "address, juror (person) maybe has multiple addresses."
+  id: ID!,
+  "Courts where the juror has stake"
+  subcourtsIDs: [Court!],
+  "Current Stakes for this juror"
+  currentStakes: [CourtStake!] @derivedFrom(field:"juror"),
+  "all the setStakes event emited by this juror"
+  allStakes: [StakeSet!] @derivedFrom(field:"address")
+  "Total staked across all the courts"
+  totalStaked: BigInt!,
+  "It's an active juror?"
+  activeJuror: Boolean,
+  "List of disputes where has at least one vote"
+  disputesAsJuror: [Dispute!] @derivedFrom(field:"jurorsInvolved"),
+  "Number of disputes that has been participating as juror"
+  numberOfDisputesAsJuror: BigInt!,
+  "List of disputes raised by this wallet"
+  disputesAsCreator: [Dispute!] @derivedFrom(field:"creator")
+  "Number of disputes created by this wallet"
+  numberOfDisputesCreated: BigInt!,
+  "This could be derivedFrom the Votes entity, but there should be used the jurors entity instead of bytes"
+  votes: [Vote!] @derivedFrom(field:"address")
+}
+
+type CourtStake @entity {
+  "address.toHex()-subcourtID.toString()"
+  id: ID!
+  "Court entity"
+  court: Court!
+  "Juror entity"
+  juror: Juror!
+  "Amount staked in this court for this juror"
+  stake: BigInt!
+  "Timestamp of the last stake"
+  timestamp: BigInt!
+  "blocknumber of the last stake"
+  blockNumber: BigInt!
 }
 
 type Dispute @entity {
@@ -68,7 +130,7 @@ type Dispute @entity {
   "Arbitrable SC who raised the dispute"
   arbitrable: Bytes!,
   "wallet who raise the dispute"
-  creator: Bytes!,
+  creator: Juror!,
   "Court where the dispute is handled"
   subcourtID: Court!,
   "Number of choices wihtin the dispute"
@@ -114,7 +176,7 @@ type Vote @entity {
   "Vote identificator"
   voteID: BigInt!,
   "Address who was selected to vote"
-  address: Bytes!,
+  address: Juror!,
   "Choice selected"
   choice: BigInt,
   "Boolean to indicate if the vote was casted. If not, the choice 0 indicates pending"
@@ -144,19 +206,6 @@ type Draw @entity {
   voteId: BigInt!,
   "timestamp when the vote was drawn"
   timestamp: BigInt!
-}
-
-type Juror @entity {
-  "address, juror (person) maybe has multiple addresses."
-  id: ID!,
-  "Courts where the juror has stake"
-  subcourtsIDs: [Court!],
-  totalStaked: BigInt!,
-  activeJuror: Boolean,
-  disputesAsJuror: [Dispute!],
-  numberOfDisputesCreated: BigInt!,
-  "This could be derivedFrom the Votes entity, but there should be used the jurors entity instead of bytes"
-  votes: [Vote!]
 }
 
 type TokenAndETHShift @entity {

@@ -8,18 +8,14 @@ import {
   CastVoteCall,
   KlerosLiquid, 
   CreateSubcourtCall,
-  ExecuteCall,
   ChangeSubcourtMinStakeCall,
   ChangeSubcourtAlphaCall,
   ChangeSubcourtJurorFeeCall,
   ChangeSubcourtJurorsForJumpCall,
   ChangeSubcourtTimesPerPeriodCall,
-  ExecuteRulingCall
+  ExecuteRulingCall,
+  ChangeSubcourtTimesPerPeriodCall__Inputs
 } from "../generated/KlerosLiquid/KlerosLiquid"
-import {
-  PolicyRegistry,
-  PolicyUpdate as PolicyUpdateEvent
-} from "../generated/PolicyRegistry/PolicyRegistry"
 import {
   StakeSet,
   Draw,
@@ -29,19 +25,13 @@ import {
   Dispute,
   Court,
   KlerosCounter,
-  PolicyUpdate
+  Juror,
+  CourtStake
 } from "../generated/schema"
 import {
   log,
-  TypedMap,
-  Entity,
-  store,
   Address,
-  Bytes,
-  BigInt,
-  BigDecimal,
-  json,
-  ipfs
+  BigInt
 } from "@graphprotocol/graph-ts";
 
 
@@ -59,12 +49,18 @@ export function handleStakeSet(event: StakeSetEvent): void {
   let entity = new StakeSet(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   )
-  entity.address = event.params._address
+  let juror = getOrCreateJuror(event.params._address, event.params._subcourtID, event.params._newTotalStake, event.address)
+  entity.address = juror.id
   entity.subcourtID = event.params._subcourtID
   entity.stake = event.params._stake
   entity.newTotalStake = event.params._newTotalStake
   entity.save()
   log.info("handleStakeSet: stake set stored",[])
+
+  // Create CourtStake entity
+  getOrCreateCourtStake(entity.subcourtID, entity.stake, event.params._address, event.block.timestamp, event.block.number, event.address)
+
+
 }
 
 export function handleDisputeCreation(event: DisputeCreationEvent): void {
@@ -72,11 +68,13 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   let entity = new Dispute(event.params._disputeID.toString())
   entity.disputeID = event.params._disputeID
   entity.arbitrable = event.params._arbitrable
-  entity.creator = event.transaction.from
+  
   log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(event.params._disputeID)
   let court = getOrCreateCourt(disputeData.value0, event.address)
+  let creator = getOrCreateJuror(event.transaction.from, null, BigInt.fromI32(0), event.address)
+  entity.creator = creator.id
   court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
   court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
   court.save()
@@ -130,7 +128,9 @@ export function handleDraw(event: DrawEvent): void {
   log.debug("handleDraw: loaded round id is {}", [round.id])
   log.debug("handleDraw: loaded dispute id is {}", [dispute.id])
   let entity = new Vote(drawID)
-  entity.address = event.params._address
+  let court = Court.load(dispute.subcourtID)
+  let juror = getOrCreateJuror(event.params._address, BigInt.fromString(court.id), BigInt.fromI32(0), event.address)
+  entity.address = juror.id
   entity.dispute = dispute.id
   entity.round = round.id
   entity.voteID = voteID
@@ -265,7 +265,7 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   let oldcourt = Court.load(dispute.subcourtID)
   let court = getOrCreateCourt(disputeData.value0, event.address)
   if (oldcourt != court){
-    log.debug("handleAppealDecision: Court Jump!", [])
+    log.debug(" : Court Jump!", [])
     dispute.subcourtID = court.id
     dispute.save()
     // update oldcourt counters
@@ -449,4 +449,87 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     kc.save()
   }
   return court!
+}
+
+
+function getOrCreateCourtStake(courtID: BigInt, stake: BigInt, address: Address, timestamp:BigInt, blockNumber: BigInt, KLContract: Address): CourtStake {
+  let courtStake = CourtStake.load(address.toHex()+"-"+courtID.toString())
+  if (courtStake == null){
+    log.debug("getOrCreateCourtStake: Creating a new CourtStake with address {} in the court {}",[address.toString(), courtID.toString()])
+    courtStake = new CourtStake(address+"-"+courtID.toString())
+    courtStake.stake = stake
+    let court = getOrCreateCourt(courtID, KLContract)
+    courtStake.court = court.id
+    courtStake.timestamp = timestamp
+    courtStake.blockNumber = blockNumber
+  }
+  return courtStake!
+}
+
+function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: BigInt, KLContract: Address): Juror {
+  let juror = Juror.load(address.toHex())
+  if (juror==null){
+    log.debug("getOrCreateJuror: Creating a new juror with address: {}",[address.toString()])
+    juror = new Juror(address.toHex())
+    juror.numberOfDisputesCreated = BigInt.fromI32(0)
+    juror.numberOfDisputesAsJuror = BigInt.fromI32(0)
+    juror.totalStaked = totalStake
+    juror.activeJuror = true
+    if (courtID != null){
+      let court = getOrCreateCourt(courtID, KLContract)
+      juror.subcourtsIDs = [court.id]
+    }
+  }
+  return juror!
+}
+
+function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, totalStaked: BigInt, timestamp: BigInt, blockNumber: BigInt, KLContract: Address): void{
+  let courtStake = getOrCreateCourtStake(courtID, stake, address, timestamp, blockNumber, KLContract)
+  log.debug("updateJurorStake: updating court stake", [])
+  let oldStake = courtStake.stake
+  courtStake.stake = stake
+  courtStake.timestamp = timestamp
+  courtStake.blockNumber = blockNumber
+  courtStake.save()
+  log.debug("updateJurorStake: updating juror", [])
+  let juror = getOrCreateJuror(address, courtID, totalStaked, KLContract)
+  juror.totalStaked = totalStaked
+  if (totalStaked == BigInt.fromI32(0)){
+    juror.activeJuror = false
+  } else{
+    juror.activeJuror = true
+  }
+  // update court Jurors stats
+  log.debug("updateJurorStake: updating court juror counter", [])
+  let court = getOrCreateCourt(courtID, KLContract)
+  let kc = getOrInitializeKlerosCounter()
+  if (oldStake == stake){
+    // this juror is new in the court, because the oldstake it's actually the current stake (created CourtStake in the function)
+    court.activeJurors = court.activeJurors.plus(BigInt.fromI32(0))
+    court.tokenStaked = court.tokenStaked.plus(stake)
+    court.save()
+    kc.activeJurors = kc.activeJurors.plus(BigInt.fromI32(0))
+    kc.save()
+  } else if (oldStake>BigInt.fromI32(0) && stake == BigInt.fromI32(0)) {
+    // this juror is quiting from the court
+    court.activeJurors = court.activeJurors.minus(BigInt.fromI32(0))
+    court.tokenStaked = court.tokenStaked.minus(oldStake)
+    court.save()
+    kc.activeJurors = kc.activeJurors.minus(BigInt.fromI32(0))
+    kc.inactiveJurors = kc.inactiveJurors.plus(BigInt.fromI32(0))
+    kc.save()
+  } else {
+    // the juror just modify it's stake but still being an active juror
+    court.tokenStaked = court.tokenStaked.plus(stake).minus(oldStake)
+    court.save()
+  }
+  // update subcourts where Juror is
+  let findIndex = juror.subcourtsIDs.findIndex(x => x == court.id)
+  if (findIndex == -1){
+    let ids = juror.subcourtsIDs
+    ids.push(court.id)
+    juror.subcourtsIDs = ids
+  }
+  juror.save()
+
 }
