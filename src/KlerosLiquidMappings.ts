@@ -267,12 +267,15 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   if (oldcourt != court){
     log.debug("handleAppealDecision: Court Jump!", [])
     dispute.subcourtID = court.id
+    dispute.save()
     // update oldcourt counters
     oldcourt.disputesOngoing = oldcourt.disputesOngoing.minus(BigInt.fromI32(1))
     oldcourt.disputesNum = oldcourt.disputesNum.minus(BigInt.fromI32(1))
+    oldcourt.save()
     // update new court counters
     court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
     court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
+    court.save()
   }
   // Update KlerosCounters
   let kc = getOrInitializeKlerosCounter()
