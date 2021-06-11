@@ -25,7 +25,7 @@ export function handlePolicyUpdate(event: NewPolicyUpdateEvent): void {
     entity.blockNumber = event.block.number
     entity.save()
     
-    log.debug("handlePolicyUpdate: Updating policy in the court", [])
+    // log.debug("handlePolicyUpdate: Updating policy in the court", [])
     // this should not be the event.address
     // let court = getOrCreateCourt(event.params._subcourtID, event.address)
     // court.policy = entity.id

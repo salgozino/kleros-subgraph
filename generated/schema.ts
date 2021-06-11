@@ -347,6 +347,15 @@ export class KlerosCounter extends Entity {
     this.set("inactiveJurors", Value.fromBigInt(value));
   }
 
+  get drawnJurors(): BigInt {
+    let value = this.get("drawnJurors");
+    return value.toBigInt();
+  }
+
+  set drawnJurors(value: BigInt) {
+    this.set("drawnJurors", Value.fromBigInt(value));
+  }
+
   get tokenStaked(): BigInt {
     let value = this.get("tokenStaked");
     return value.toBigInt();
@@ -387,13 +396,13 @@ export class StakeSet extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get address(): string {
+  get address(): Bytes {
     let value = this.get("address");
-    return value.toString();
+    return value.toBytes();
   }
 
-  set address(value: string) {
-    this.set("address", Value.fromString(value));
+  set address(value: Bytes) {
+    this.set("address", Value.fromBytes(value));
   }
 
   get subcourtID(): BigInt {

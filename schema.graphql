@@ -71,13 +71,15 @@ type KlerosCounter @entity {
   activeJurors: BigInt!,
   "Number of inactive jurors"
   inactiveJurors: BigInt!,
+  "list of jurors drawn at least once"
+  drawnJurors:BigInt!,
   "Total tokens staked in the courts"
   tokenStaked: BigInt!,
 }
 
 type StakeSet @entity {
   id: ID!
-  address: Juror! # address
+  address: Bytes! # address
   subcourtID: BigInt! # uint256
   stake: BigInt! # uint128
   newTotalStake: BigInt! # uint256
@@ -91,7 +93,7 @@ type Juror @entity {
   "Current Stakes for this juror"
   currentStakes: [CourtStake!] @derivedFrom(field:"juror"),
   "all the setStakes event emited by this juror"
-  allStakes: [StakeSet!] @derivedFrom(field:"address")
+  allStakes: [StakeSet!]
   "Total staked across all the courts"
   totalStaked: BigInt!,
   "It's an active juror?"
