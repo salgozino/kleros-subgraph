@@ -73,13 +73,13 @@ type KlerosCounter @entity {
   inactiveJurors: BigInt!,
   "list of jurors drawn at least once"
   drawnJurors:BigInt!,
-  "Total tokens staked in the courts"
+  "Total tokens staked in this courts"
   tokenStaked: BigInt!,
 }
 
 type StakeSet @entity {
   id: ID!
-  address: Bytes! # address
+  address: Juror! # address
   subcourtID: BigInt! # uint256
   stake: BigInt! # uint128
   newTotalStake: BigInt! # uint256
@@ -93,7 +93,7 @@ type Juror @entity {
   "Current Stakes for this juror"
   currentStakes: [CourtStake!] @derivedFrom(field:"juror"),
   "all the setStakes event emited by this juror"
-  allStakes: [StakeSet!]
+  allStakes: [StakeSet!] @derivedFrom(field:"address")
   "Total staked across all the courts"
   totalStaked: BigInt!,
   "It's an active juror?"
@@ -106,7 +106,7 @@ type Juror @entity {
   disputesAsCreator: [Dispute!] @derivedFrom(field:"creator")
   "Number of disputes created by this wallet"
   numberOfDisputesCreated: BigInt!,
-  "This could be derivedFrom the Votes entity, but there should be used the jurors entity instead of bytes"
+  "All the votes of this juror"
   votes: [Vote!] @derivedFrom(field:"address")
 }
 
@@ -123,6 +123,8 @@ type CourtStake @entity {
   timestamp: BigInt!
   "blocknumber of the last stake"
   blockNumber: BigInt!
+  "tx hash"
+  txid: Bytes!
 }
 
 type Dispute @entity {
@@ -153,6 +155,8 @@ type Dispute @entity {
   jurorsInvolved: [Juror!],
   "Metaevidence of the dispute. Question and options"
   metaevidente: String
+  "Transaction hash where this dispute was created"
+  txid: Bytes!
 }
 
 type Round @entity {
@@ -219,7 +223,7 @@ type TokenAndETHShift @entity {
 
 ## PolicyUpdate entities
 type PolicyUpdate @entity {
-  id: ID!
+  id: ID! # the court id
   subcourtID: BigInt! # uint256
   policy: String! # String
   contractAddress: Bytes! # address

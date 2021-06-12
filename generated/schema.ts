@@ -396,13 +396,13 @@ export class StakeSet extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get address(): Bytes {
+  get address(): string {
     let value = this.get("address");
-    return value.toBytes();
+    return value.toString();
   }
 
-  set address(value: Bytes) {
-    this.set("address", Value.fromBytes(value));
+  set address(value: string) {
+    this.set("address", Value.fromString(value));
   }
 
   get subcourtID(): BigInt {
@@ -682,6 +682,15 @@ export class CourtStake extends Entity {
   set blockNumber(value: BigInt) {
     this.set("blockNumber", Value.fromBigInt(value));
   }
+
+  get txid(): Bytes {
+    let value = this.get("txid");
+    return value.toBytes();
+  }
+
+  set txid(value: Bytes) {
+    this.set("txid", Value.fromBytes(value));
+  }
 }
 
 export class Dispute extends Entity {
@@ -861,6 +870,15 @@ export class Dispute extends Entity {
     } else {
       this.set("metaevidente", Value.fromString(value as string));
     }
+  }
+
+  get txid(): Bytes {
+    let value = this.get("txid");
+    return value.toBytes();
+  }
+
+  set txid(value: Bytes) {
+    this.set("txid", Value.fromBytes(value));
   }
 }
 

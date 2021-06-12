@@ -8,26 +8,30 @@ import {
   } from "../generated/PolicyRegistry/PolicyRegistry"
 import {
     PolicyUpdate,
+    Court
   } from "../generated/schema"
 import {
   getOrCreateCourt
 } from "./KlerosLiquidMappings"
 
+let klContract = Address.fromString("0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069")
+
 export function handlePolicyUpdate(event: NewPolicyUpdateEvent): void {
   log.debug("handlePolicyUpdate: Storing new PolicyUpdate entity for subcourt {}",[event.params._subcourtID.toString()])  
-  let entity = new PolicyUpdate(
-        event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-    )
-    entity.subcourtID = event.params._subcourtID
-    entity.policy = event.params._policy
-    entity.contractAddress = event.address
-    entity.timestamp = event.block.timestamp
-    entity.blockNumber = event.block.number
-    entity.save()
-    
-    // log.debug("handlePolicyUpdate: Updating policy in the court", [])
-    // this should not be the event.address
-    // let court = getOrCreateCourt(event.params._subcourtID, event.address)
-    // court.policy = entity.id
-    // court.save()
+  let entity = PolicyUpdate.load(event.params._subcourtID.toString())
+  if (entity==null){
+    entity = new PolicyUpdate(event.params._subcourtID.toString())
+  }
+  
+  entity.subcourtID = event.params._subcourtID
+  entity.policy = event.params._policy
+  entity.contractAddress = event.address
+  entity.timestamp = event.block.timestamp
+  entity.blockNumber = event.block.number
+  entity.save()
+
+  //let court = getOrCreateCourt(event.params._subcourtID, klContract)
+  //court.policy = entity.id
+  //court.save()
+  // the saving operation it's done, but the subgraph fails.
 }
