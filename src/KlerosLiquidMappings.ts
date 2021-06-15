@@ -586,8 +586,10 @@ function updateCourtTokenStaked(courtID:BigInt, oldStake:BigInt, newStake:BigInt
   // if it's a new Juror, oldStake should be zero
   court.tokenStaked = court.tokenStaked.minus(oldStake).plus(newStake)
   if (newJuror){
+    log.debug("updateCourtTokenStaked: Adding the new juror to court {}",[court.id])
     court.activeJurors = court.activeJurors.plus(BigInt.fromI32(1))
   } else if (newStake.equals(BigInt.fromI32(0))) {
+    log.debug("updateCourtTokenStaked: Removing the juror from court {}",[court.id])
     court.activeJurors = court.activeJurors.minus(BigInt.fromI32(1))
   }
   court.save()
