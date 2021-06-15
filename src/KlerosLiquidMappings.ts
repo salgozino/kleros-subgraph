@@ -229,7 +229,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   let kc = getOrInitializeKlerosCounter()
   if (event.params._period == 4) {
     dispute.ruled = true
-    let court = Court.load(dispute.subcourtID)
+    let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
     log.debug("handleNewPeriod: Updating disputes ongoing and closed in court {}", [court.id])
     court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
     court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
@@ -298,7 +298,7 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(disputeID)
   
-  let oldcourt = Court.load(dispute.subcourtID)
+  let oldcourt = getOrCreateCourt(BigInt.fromString(dispute.subcourtID),event.address)
   let court = getOrCreateCourt(disputeData.value0, event.address)
   if (oldcourt != court){
     log.debug("handleAppealDecision: Court Jump!", [])
