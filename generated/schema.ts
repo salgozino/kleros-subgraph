@@ -364,6 +364,33 @@ export class KlerosCounter extends Entity {
   set tokenStaked(value: BigInt) {
     this.set("tokenStaked", Value.fromBigInt(value));
   }
+
+  get totalETHFees(): BigInt {
+    let value = this.get("totalETHFees");
+    return value.toBigInt();
+  }
+
+  set totalETHFees(value: BigInt) {
+    this.set("totalETHFees", Value.fromBigInt(value));
+  }
+
+  get totalPNKredistributed(): BigInt {
+    let value = this.get("totalPNKredistributed");
+    return value.toBigInt();
+  }
+
+  set totalPNKredistributed(value: BigInt) {
+    this.set("totalPNKredistributed", Value.fromBigInt(value));
+  }
+
+  get totalUSDthroughContract(): BigInt {
+    let value = this.get("totalUSDthroughContract");
+    return value.toBigInt();
+  }
+
+  set totalUSDthroughContract(value: BigInt) {
+    this.set("totalUSDthroughContract", Value.fromBigInt(value));
+  }
 }
 
 export class StakeSet extends Entity {

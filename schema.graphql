@@ -75,6 +75,12 @@ type KlerosCounter @entity {
   drawnJurors:BigInt!,
   "Total tokens staked in this courts"
   tokenStaked: BigInt!,
+  "Total ETH distributed in fees"
+  totalETHFees: BigInt!,
+  "Total PNK redistributed within jurors"
+  totalPNKredistributed: BigInt!,
+  "Total USD passed throug the contract in deposit and jurors fees"
+  totalUSDthroughContract: BigInt!
 }
 
 type StakeSet @entity {

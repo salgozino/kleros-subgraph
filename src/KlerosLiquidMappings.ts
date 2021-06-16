@@ -58,9 +58,8 @@ export function handleStakeSet(event: StakeSetEvent): void {
   entity.newTotalStake = event.params._newTotalStake
   entity.save()
   log.info("handleStakeSet: stake set stored",[])
-  // Create CourtStake entity
-  // It's not necesary, because it's the first operation in updateJurorStake
-  // update the stake
+  
+  // update the juror entity and the courtStake
   updateJurorStake(event.params._address, event.params._subcourtID, event.params._stake, event.params._newTotalStake, event.block.timestamp, event.block.number, event.transaction.hash,event.address)
  
 }
@@ -433,7 +432,9 @@ function getOrInitializeKlerosCounter(): KlerosCounter {
     kc.inactiveJurors = BigInt.fromI32(0),
     kc.drawnJurors = BigInt.fromI32(0)
     kc.tokenStaked = BigInt.fromI32(0)
-    
+    kc.totalETHFees = BigInt.fromI32(0)
+    kc.totalPNKredistributed = BigInt.fromI32(0)
+    kc.totalUSDthroughContract = BigInt.fromI32(0)
     kc.save()
   } else{
     log.debug("getOrInitializeKlerosCounter: counters loaded",[])
@@ -530,57 +531,56 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
 
 function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, totalStaked: BigInt, timestamp: BigInt, blockNumber: BigInt, txID:Bytes, KLContract: Address): void{
   log.debug("updateJurorStake: updating court stake for juror {} and court {}", [address.toHexString(), courtID.toString()])
+  let isNewJuror = checkIfNewJuror(address)
   let juror = getOrCreateJuror(address, courtID, totalStaked, KLContract)
   let courtStake = getOrCreateCourtStake(courtID, stake, address, timestamp, blockNumber, txID, KLContract)
-  let isNewJuror = courtStake.timestamp == timestamp // if courtStake was created will share the timestamp
   let kc = getOrInitializeKlerosCounter()
   let court = getOrCreateCourt(courtID, KLContract)
-
-  let oldStake: BigInt
-  if (isNewJuror){
-    kc.activeJurors = kc.activeJurors.plus(BigInt.fromI32(1))
-    oldStake=BigInt.fromI32(0)
-  }else{
-    // the courtStake has to be updated
+  let oldStake = BigInt.fromI32(0)
+  
+  // update courtStake entity
+  if (!isNewJuror){
     oldStake = courtStake.stake
+    // the courtStake has to be updated
     courtStake.stake = stake
     courtStake.timestamp = timestamp
     courtStake.blockNumber = blockNumber
     courtStake.save()
   }
 
-  // update counters for total jurors, for this specific court it's uploaded in updateCourtTokenStaked
-  log.debug("updateJurorStake: updating juror total stake and if it's active", [])
-  if (totalStaked.equals(BigInt.fromI32(0))){
-    // juror quiting from all the courts
-    juror.activeJuror = false
-    kc.activeJurors = kc.activeJurors.minus(BigInt.fromI32(1))
-    kc.inactiveJurors = kc.inactiveJurors.plus(BigInt.fromI32(1))
-  } else{
-    juror.activeJuror = true
+  // update global counters for tokenStaked and active jurors
+  log.debug("updateJurorStake: updating KC active/inactive jurors counters", [])
+  if (isNewJuror){
+    kc.activeJurors = kc.activeJurors.plus(BigInt.fromI32(1))
   }
-  
-  // update court Jurors stats
-  log.debug("updateJurorStake: updating juror stakes in court and kleroscounters", [])
-  juror.totalStaked = totalStaked
-  updateCourtTokenStaked(courtID, oldStake, stake, isNewJuror, KLContract)
+  if (totalStaked.equals(BigInt.fromI32(0)) && juror.activeJuror){
+    // An active juror quiting from all the courts
+      kc.activeJurors = kc.activeJurors.minus(BigInt.fromI32(1))
+      kc.inactiveJurors = kc.inactiveJurors.plus(BigInt.fromI32(1))
+  }
   kc.tokenStaked = kc.tokenStaked.plus(stake).minus(oldStake)
+  kc.save()
 
+  // update court stats for jurors and token staked
+  updateCourtDueToStake(courtID, oldStake, stake, isNewJuror, KLContract)
   
-  // update subcourts where Juror is
+  // update juror entity
+  log.debug("updateJurorStake: updating juror entity", [])
+  juror.totalStaked = totalStaked
   let subcourtIDs = juror.subcourtsIDs
   if (subcourtIDs.indexOf(court.id) == -1){
     subcourtIDs.push(court.id)
   }    
-
-  // Save entities
-  court.save()
-  kc.save()
+  juror.subcourtsIDs = subcourtIDs
+  if (totalStaked.equals(BigInt.fromI32(0))){
+    juror.activeJuror = false
+  } else{
+    juror.activeJuror = true
+  }
   juror.save()
-
 }
 
-function updateCourtTokenStaked(courtID:BigInt, oldStake:BigInt, newStake:BigInt, newJuror:boolean, KLContract: Address): void{
+function updateCourtDueToStake(courtID:BigInt, oldStake:BigInt, newStake:BigInt, newJuror:boolean, KLContract: Address): void{
   let court = getOrCreateCourt(courtID, KLContract)
   log.debug("updateCourtTokenStaked: Updating token staked and juror count in court {} do to the stake event of a juror", [court.id])
   // if it's a new Juror, oldStake should be zero
@@ -593,9 +593,22 @@ function updateCourtTokenStaked(courtID:BigInt, oldStake:BigInt, newStake:BigInt
     court.activeJurors = court.activeJurors.minus(BigInt.fromI32(1))
   }
   court.save()
-  
+
+  // if this court has a parent, update the tokenStaked and counters in the parent court too.
   if (court.parent != null){
-    //log.debug("updateCourtTokenStaked: Updating the court parent {}",[court.parent])
-    updateCourtTokenStaked(BigInt.fromString(court.parent), oldStake, newStake, newJuror, KLContract)
+    updateCourtDueToStake(BigInt.fromString(court.parent), oldStake, newStake, newJuror, KLContract)
+  }
+}
+
+function checkIfNewJuror(address:Address): boolean{
+  let juror = Juror.load(address.toHexString())
+  if (juror == null){
+    return true!
+  }
+  else if (juror.totalStaked.gt(BigInt.fromI32(0))){
+    // check if has some tokenStaked
+      return true!
+  } else{
+    return false!
   }
 }
