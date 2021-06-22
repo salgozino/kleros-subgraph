@@ -74,16 +74,13 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   entity.arbitrable = event.params._arbitrable
   entity.txid = event.transaction.hash
 
-  log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
+  // log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(event.params._disputeID)
   let court = getOrCreateCourt(disputeData.value0, event.address)
+  // define creator
   let creator = getOrCreateJuror(event.transaction.from, null, BigInt.fromI32(0), event.address)
   entity.creator = creator.id
-  // sum +1 in the court counter
-  court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
-  court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
-  court.save()
   // sum +1 in the counter of the disputes created by this user
   creator.numberOfDisputesCreated = creator.numberOfDisputesCreated.plus(BigInt.fromI32(1))
   creator.save()
@@ -108,6 +105,11 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   round.save()
 
   //update counters
+  // sum +1 in the court counter
+  court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
+  court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
+  court.save()
+  // Kleros Counters
   let kc = getOrInitializeKlerosCounter()
   log.debug("handleDisputeCreation: Updating KlerosCounters", [])
   kc.disputesCount = kc.disputesCount.plus(BigInt.fromI32(1))
@@ -222,7 +224,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   entity.save()
 
   // update the dispute period
-  log.debug("handleNewPeriod: Updating the dispute {} information", [disputeID.toString()])
+  // log.debug("handleNewPeriod: Updating the dispute {} information", [disputeID.toString()])
   let dispute = Dispute.load(disputeID.toString())
   if (dispute == null){
     log.error("handleNewPeriod: Error trying to load the dispute with id {}. The new period will not be stored", [disputeID.toString()])
@@ -231,32 +233,33 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   dispute.period = getPeriodString(event.params._period)
   let kc = getOrInitializeKlerosCounter()
   if (event.params._period == 4) {
+    // executing rulling
     dispute.ruled = true
     let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
-    log.debug("handleNewPeriod: Updating disputes ongoing and closed in court {}", [court.id])
+    log.debug("handleNewPeriod: Period 4: updating disputes ongoing and closed in court {} entity", [court.id])
     court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
     court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
     court.save()
     // update counters
-    log.debug("handleNewPeriod: Updating kleros counter parameters in period 4", [])
+    log.debug("handleNewPeriod: Updating KC parameters in period 4. +1 for closed disputes, -1 for openDisputes and appealPhaseDisputes", [])
     kc.openDisputes = kc.openDisputes.minus(BigInt.fromI32(1))
     kc.closedDisputes = kc.closedDisputes.plus(BigInt.fromI32(1))
     kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
   } else if (event.params._period==3){
     // moving to appeal phase
-    log.debug("handleNewPeriod: Updating kleros counter parameters in period 3", [])
+    log.debug("handleNewPeriod: Updating KC parameters in period 3. +1 for appealPhase, -1 for votingPhase", [])
     kc.appealPhaseDisputes = kc.appealPhaseDisputes.plus(BigInt.fromI32(1))
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
   } else if (event.params._period==2){
-    log.debug("handleNewPeriod: Updating kleros counter parameters in period 2", [])
+    log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for evidencePhase disputes", [])
     // moving to voting phase (from the evidence phase)
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
     kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
   } else {
-    log.error("handleNewPeriod: new period of 1!, I'm doing nothing", [])
+    log.error("handleNewPeriod: new period of 1 (commit)!, I'm doing nothing", [])
   }
   dispute.lastPeriodChange = event.block.timestamp
   // update current rulling
@@ -304,20 +307,23 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   let oldcourt = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
   let court = getOrCreateCourt(disputeData.value0, event.address)
   if (oldcourt != court){
-    log.debug("handleAppealDecision: Court Jump!", [])
+    log.debug("handleAppealDecision: Court Jump! in dispute {}. oldCourt it's {} and New court it's {} ", [dispute.id,oldcourt.id,court.id])
     dispute.subcourtID = court.id
     dispute.save()
     // update oldcourt counters
+    log.debug("handleAppealDecision: Decreasing disputes in the old court {}", [oldcourt.id])
     oldcourt.disputesOngoing = oldcourt.disputesOngoing.minus(BigInt.fromI32(1))
     oldcourt.disputesNum = oldcourt.disputesNum.minus(BigInt.fromI32(1))
     oldcourt.save()
     // update new court counters
+    log.debug("handleAppealDecision: Increasing disputes in the new court after jump: {}", [court.id])
     court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
     court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
     court.save()
   }
   // Update KlerosCounters
   let kc = getOrInitializeKlerosCounter()
+  log.debug("handleAppealDecision: Adding 1 in evidence phase disputes and -1 to appeal phase disputes in the KC",[])
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
   kc.save()
@@ -628,8 +634,9 @@ function checkJurorStatus(address:Address, stake:BigInt, totalStaked:BigInt, cou
   }else if (juror.activeJuror && stake.gt(BigInt.fromI32(0))){
     if (juror.subcourtsIDs.indexOf(court.toString()) == -1){
       // it's their first time staking in this court
+      log.debug("checkJurorStatus: {} is an active juror but first time in this court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
       return 3!
-    }else{
+    } else{
       // it's already an active juror changing it's stake in this court
       log.debug("checkJurorStatus: {} is an active juror changing his stake in the court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
       return 1!

@@ -12,21 +12,21 @@ The graph have global counters to track different properties and metrics of inte
 
 [x] Total disputes raised (disputesCount)
 
-[!] Total disputes without ruling (openDisputes)
+[x] Total disputes without ruling (openDisputes)
 
-[!] Total disputes on evidence phase (evidencePhaseDisputes)
+[x] Total disputes on evidence phase (evidencePhaseDisputes)
 
-[!] Total disputes on voting phase (votingPhaseDisputes)
+[x] Total disputes on voting phase (votingPhaseDisputes)
 
-[!] Total disputes on appeal phase (appealPhaseDisputes)
+[x] Total disputes on appeal phase (appealPhaseDisputes)
 
-[!] Total disputes closed (closedDisputes)
+[x] Total disputes closed (closedDisputes)
 
 [!] Count of Active jurors (wallets)
 
 [!] Count of inactive jurors (wallets)
 
-[!] Total jurors drawn (drawnJurors)
+[x] Total jurors drawn at least once (drawnJurors)
 
 [!] PNK staked in the all the courts (tokenStaked)
 
@@ -222,7 +222,7 @@ All the tracking of this grpah will be done checking the events of the KlerosLiq
 ### Kleros Liquid events of interest:
 #### setStake 
 When a juror stake or unstake pnk in some court. This event returns the current stake and the total current stake (total is the stake of the juror in all the subcourts).
-When this event is emmited, some entities should be created/updated. First of all, there is a setStake entity that will record this event, to have all the history of all the stakes. Then, a CourtStake entity should be created or updated. This entity has the last setStake event of this juror in this specific court. In addition of this, some counters has to be updated. Each court has it's own counter of active jurors, so if this is a new juror, the active juror count of this court has to be increased by one, if the juror it's unstaking from the court, the counter should be decreased. This counter has to impact in all the parent courts also. Each court has a counter of the amount of tokens staked, this has to be updated and also in the parent courts. Last, the global counter (KlerosCounters) shall be updated if it's needed to take into account if this jurors it's a new active juror or it's a new inactive juror.
+When this event is emmited, some entities should be created/updated. First of all, there is a setStake entity that will record this event, to have all the history of all the stakes. For this entity it's needed the Juror entity, that should be created or loaded to link the setStake event with the juror. Also, this juror entity should be updated with the subcourts where the juror is or has staked, updated if it's a active juror and the totalToken staked. Then, a CourtStake entity should be created or updated. This entity has the last setStake event of this juror in this specific court. In addition of this, some counters has to be updated. Each court has it's own counter of active jurors, so if this is a new juror, the active juror count of this court has to be increased by one, if the juror it's unstaking from the court, the counter should be decreased. This counter has to impact in all the parent courts also. Each court has a counter of the amount of tokens staked, this has to be updated and also in the parent courts. Last, the global counter (KlerosCounters) shall be updated if it's needed to take into account if this jurors it's a new active juror or it's a new inactive juror.
 
 ### newPeriod
 When a dispute changes to a new period. The posible phases are: {0:evidence, 1:commit, 2:vote, 3:appeal, 4:execution}.
