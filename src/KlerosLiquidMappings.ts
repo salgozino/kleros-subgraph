@@ -617,8 +617,8 @@ function checkJurorStatus(address:Address, stake:BigInt, totalStaked:BigInt, cou
   //  2 = old inactive juror staking again in a court
   //  3 = active juror staking for the first time in a this court
   //  4 = very first time juror.
-  const juror = Juror.load(address.toHexString())
-  const isActive = isActiveInThisCourt(court, address)
+  let juror = Juror.load(address.toHexString())
+  let isActive = isActiveInThisCourt(court, address)
 
   if (juror == null){
     // This juror doesn't exist, it's a new juror staking
@@ -660,8 +660,8 @@ function checkJurorStatus(address:Address, stake:BigInt, totalStaked:BigInt, cou
 }
 
 function isActiveInThisCourt(court:BigInt, address:Address):boolean {
-  const id = address.toHexString()+"-"+court.toString()
-  const courtStake = new CourtStake(id)
+  let id = address.toHexString()+"-"+court.toString()
+  let courtStake = CourtStake.load(id)
   if (courtStake == null){
     return false!
   } else{
