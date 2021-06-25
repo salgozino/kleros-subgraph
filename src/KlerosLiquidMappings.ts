@@ -664,13 +664,13 @@ function updateKCDueToStake(oldStake:BigInt, newStake:BigInt, jurorStatus:number
     // newJuror
     log.debug("updateKCDueToStake: updating KC with a new Juror!. OldStake {} and NewStake {}", [oldStake.toString(), newStake.toString()])
     kc.activeJurors = kc.activeJurors.plus(BigInt.fromI32(1))
-    if (oldStake.equals(BigInt.fromI32(0))){
+    if (oldStake.notEqual(BigInt.fromI32(0))){
       log.warning("updateKCDueToStake: it's a new juror, oldStake should be zero. OldStake {} and NewStake {}", [oldStake.toString(), newStake.toString()])
       oldStake = BigInt.fromI32(0)
     }
   } else if (jurorStatus === 3){
     log.debug("updateKCDueToStake: KC juror counts doesn't need to be changed, just the tokenStaked, This juror is an active juror staking for the first time in a court. Stake {} to {}", [oldStake.toString(), newStake.toString()])
-    if (oldStake.equals(BigInt.fromI32(0))){
+    if (oldStake.notEqual(BigInt.fromI32(0))){
       log.warning("updateKCDueToStake: it's their first time in a court, oldStake should be zero. OldStake {} and NewStake {}", [oldStake.toString(), newStake.toString()])
       oldStake = BigInt.fromI32(0)
     }
@@ -679,7 +679,7 @@ function updateKCDueToStake(oldStake:BigInt, newStake:BigInt, jurorStatus:number
     log.debug("updateKCDueToStake: updating KC with an old inactive juror now as active!. OldStake {} and NewStake {}", [oldStake.toString(), newStake.toString()])
     kc.activeJurors = kc.activeJurors.plus(BigInt.fromI32(1))
     kc.inactiveJurors = kc.inactiveJurors.minus(BigInt.fromI32(1))
-    if (oldStake.equals(BigInt.fromI32(0))){
+    if (oldStake.notEqual(BigInt.fromI32(0))){
       log.warning("updateKCDueToStake: it's an old inactive juror, oldStake should be zero. OldStake {} and NewStake {}", [oldStake.toString(), newStake.toString()])
       oldStake = BigInt.fromI32(0)
     }
