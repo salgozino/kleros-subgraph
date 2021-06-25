@@ -617,21 +617,23 @@ function checkJurorStatus(address:Address, stake:BigInt, totalStaked:BigInt, cou
   //  2 = old inactive juror staking again in a court
   //  3 = active juror staking for the first time in a this court
   //  4 = very first time juror.
-  let juror = Juror.load(address.toHexString())
+  const juror = Juror.load(address.toHexString())
+  const isActive = isActiveInThisCourt(court, address)
+
   if (juror == null){
     // This juror doesn't exist, it's a new juror staking
     log.debug("checkJurorStatus: Say hi to {} who is a new juror",[address.toHexString()])
     return 4!
   }
-  else if (!juror.activeJuror && stake.gt(BigInt.fromI32(0))){
+  else if (!isActive && stake.gt(BigInt.fromI32(0))){
     // It's an old inactive juror returning to the courts.
     log.debug("checkJurorStatus: Hey, {} is a juror returning to the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), totalStaked.toString(), stake.toString()])
     return 2!
-  } else if (!juror.activeJuror && stake.equals(BigInt.fromI32(0))){
+  } else if (!isActive && stake.equals(BigInt.fromI32(0))){
     // An inactive juror staking 0, it's just an duplicated tx of unstake.
     log.debug("checkJurorStatus: Mmmm, this is an inactive juror staking 0? The juror {} is sending the tx twice?. Returning status as 1 (not change active/inactive jurors",[juror.id])
     return 1!
-  }else if (juror.activeJuror && stake.gt(BigInt.fromI32(0))){
+  }else if (isActive && stake.gt(BigInt.fromI32(0))){
     if (juror.subcourtsIDs.indexOf(court.toString()) == -1){
       // it's their first time staking in this court
       log.debug("checkJurorStatus: {} is an active juror but first time in this court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
@@ -641,7 +643,7 @@ function checkJurorStatus(address:Address, stake:BigInt, totalStaked:BigInt, cou
       log.debug("checkJurorStatus: {} is an active juror changing his stake in the court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
       return 1!
     }
-  } else if (juror.activeJuror && stake.equals(BigInt.fromI32(0))){
+  } else if (isActive && stake.equals(BigInt.fromI32(0))){
     if (totalStaked.equals(BigInt.fromI32(0))){
       // It's an active juror quitting all the courts
       log.debug("checkJurorStatus: {} is an active juror quitting from all the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(),totalStaked.toString(), stake.toString()])
@@ -655,6 +657,21 @@ function checkJurorStatus(address:Address, stake:BigInt, totalStaked:BigInt, cou
   log.error("checkJurorStatus: Mmmm, This should never be met, what's doing the juror {} with stake {}?. TotalStaked {}. Returning 1",[juror.id, stake.toString(), juror.totalStaked.toString()])
   return 1!
   }
+}
+
+function isActiveInThisCourt(court:BigInt, address:Address):boolean {
+  const id = address.toHexString()+"-"+court.toString()
+  const courtStake = new CourtStake(id)
+  if (courtStake == null){
+    return false!
+  } else{
+    if (courtStake.stake.equals(BigInt.fromI32(0))){
+      return false!
+    } else{
+      return true!
+    }
+  }
+
 }
 
 function updateKCDueToStake(oldStake:BigInt, newStake:BigInt, jurorStatus:number): void{
