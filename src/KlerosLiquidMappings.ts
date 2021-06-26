@@ -639,9 +639,8 @@ function checkJurorStatus(address:Address, stake:BigInt, newTotalStaked:BigInt, 
       log.debug("checkJurorStatus: {} is an active juror quitting from all the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(),newTotalStaked.toString(), stake.toString()])
       return -1!
     } else{
-      log.error("checkJurorStatus: Reaching an imposible condition¿?. stake = {}, newTotalStaked = {}, activeInThisCourt = {}", [
-        stake.toString(), newTotalStaked.toString(), String(isActive)
-      ])
+      log.error("checkJurorStatus: Reaching an imposible condition¿?. stake = {}, newTotalStaked = {}", [
+        stake.toString(), newTotalStaked.toString()])
     }
   } else{
     // not an active juror in this court.
