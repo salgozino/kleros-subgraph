@@ -500,24 +500,32 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
   return court!
 }
 
+function getCourtStakeId(address: Address, courtID: BigInt): string {
+  return address.toHexString()+"-"+courtID.toString();
+}
 
-function getOrCreateCourtStake(courtID: BigInt, stake: BigInt, address: Address, timestamp:BigInt, 
-  blockNumber: BigInt, txID:Bytes, KLContract: Address): CourtStake {
-  let id = address.toHexString()+"-"+courtID.toString()
+function createOrUpdateCourtStake(courtID: BigInt, stake: BigInt, address: Address, timestamp:BigInt,
+                             blockNumber: BigInt, txID:Bytes, KLContract: Address): CourtStake {
+  let id = getCourtStakeId(address, courtID)
   let courtStake = CourtStake.load(id)
+
   if (courtStake == null){
-    log.debug("getOrCreateCourtStake: Creating a new CourtStake in the court {} for juror {}",[courtID.toString(), address.toHexString()])
+    log.debug("createOrUpdateCourtStake: Creating a new CourtStake in the court {} for juror {}",[courtID.toString(), address.toHexString()])
     courtStake = new CourtStake(id)
-    courtStake.stake = stake
+
     let court = getOrCreateCourt(courtID, KLContract)
     courtStake.court = court.id
-    courtStake.timestamp = timestamp
-    courtStake.blockNumber = blockNumber
     let juror = getOrCreateJuror(address, courtID, BigInt.fromI32(0), KLContract)
     courtStake.juror = juror.id
-    courtStake.txid = txID
-    courtStake.save()
   }
+
+  courtStake.stake = stake
+  courtStake.timestamp = timestamp
+  courtStake.blockNumber = blockNumber
+  courtStake.txid = txID
+
+  courtStake.save()
+
   return courtStake!
 }
 
@@ -544,23 +552,13 @@ function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, total
   timestamp: BigInt, blockNumber: BigInt, txID:Bytes, 
   jurorStatus:number, KLContract: Address): void{
   log.debug("updateJurorStake: updating court stake for juror {} and court {}", [address.toHexString(), courtID.toString()])
-  
+
   let juror = getOrCreateJuror(address, courtID, totalStaked, KLContract)
-  let courtStake = getOrCreateCourtStake(courtID, stake, address, timestamp, blockNumber, txID, KLContract)
   let court = getOrCreateCourt(courtID, KLContract)
-  let oldStake = BigInt.fromI32(0)
-  
-  if (jurorStatus < 2) oldStake = courtStake.stake
-  // status > 3 it's a new juror or staking for the first time in this court, so the oldStake = 0 and the CourtStake was created when loaded.
-  if (jurorStatus < 3){
-    // 3 & 4 are new jurors or new in this court, there is no need to update
-    log.debug("updateJurorStake: The CourtStake entity of court {} has to be updated from {} to {} pnks",[courtStake.court.toString(),courtStake.stake.toString(), stake.toString()])
-    courtStake.stake = stake
-    courtStake.timestamp = timestamp
-    courtStake.blockNumber = blockNumber
-    courtStake.save()
-  }
-  
+
+  let oldStake = getCourtStakeValue(courtID, address)
+
+  createOrUpdateCourtStake(courtID, stake, address, timestamp, blockNumber, txID, KLContract)
 
   // update KlerosCounters 
   updateKCDueToStake(oldStake, stake, jurorStatus)
@@ -659,19 +657,18 @@ function checkJurorStatus(address:Address, stake:BigInt, totalStaked:BigInt, cou
   }
 }
 
-function isActiveInThisCourt(court:BigInt, address:Address):boolean {
-  let id = address.toHexString()+"-"+court.toString()
-  let courtStake = CourtStake.load(id)
-  if (courtStake == null){
-    return false!
-  } else{
-    if (courtStake.stake.equals(BigInt.fromI32(0))){
-      return false!
-    } else{
-      return true!
-    }
+function getCourtStakeValue(court:BigInt, address:Address): BigInt {
+  let courtStake = CourtStake.load(getCourtStakeId(address, court))
+
+  if (courtStake == null) {
+    return BigInt.fromI32(0)
   }
 
+  return courtStake.stake
+}
+
+function isActiveInThisCourt(court:BigInt, address:Address): boolean {
+  return getCourtStakeValue(court, address).gt(BigInt.fromI32(0))
 }
 
 function updateKCDueToStake(oldStake:BigInt, newStake:BigInt, jurorStatus:number): void{
