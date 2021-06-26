@@ -608,53 +608,64 @@ function updateCourtDueToStake(courtID:BigInt, oldStake:BigInt, newStake:BigInt,
   }
 }
 
-function checkJurorStatus(address:Address, stake:BigInt, totalStaked:BigInt, court:BigInt): number {
+function checkJurorStatus(address:Address, stake:BigInt, newTotalStaked:BigInt, court:BigInt): number {
   // -1 = quitting from all the courts
-  //  0 = quitting just from this court (but still active in other courts)
-  //  1 = changing stake in this court, still an active juror (or inactive juror)
-  //  2 = old inactive juror staking again in a court
-  //  3 = active juror staking for the first time in a this court
-  //  4 = very first time juror.
+  // 0 = quitting just from this court (but still active in other courts)
+  // 1 = changing stake in this court, still an active juror (or inactive juror)
+  // 2 = old inactive juror staking again in a court
+  // 3 = active juror staking for the first time in a this court
+  // 4 = very first time juror.
   let juror = Juror.load(address.toHexString())
   let isActive = isActiveInThisCourt(court, address)
-
+  
   if (juror == null){
     // This juror doesn't exist, it's a new juror staking
     log.debug("checkJurorStatus: Say hi to {} who is a new juror",[address.toHexString()])
     return 4!
   }
-  else if (!isActive && stake.gt(BigInt.fromI32(0))){
-    // It's an old inactive juror returning to the courts.
-    log.debug("checkJurorStatus: Hey, {} is a juror returning to the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), totalStaked.toString(), stake.toString()])
-    return 2!
-  } else if (!isActive && stake.equals(BigInt.fromI32(0))){
-    // An inactive juror staking 0, it's just an duplicated tx of unstake.
-    log.debug("checkJurorStatus: Mmmm, this is an inactive juror staking 0? The juror {} is sending the tx twice?. Returning status as 1 (not change active/inactive jurors",[juror.id])
-    return 1!
-  }else if (isActive && stake.gt(BigInt.fromI32(0))){
-    if (juror.subcourtsIDs.indexOf(court.toString()) == -1){
-      // it's their first time staking in this court
-      log.debug("checkJurorStatus: {} is an active juror but first time in this court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
-      return 3!
-    } else{
-      // it's already an active juror changing it's stake in this court
+  // the juror exist
+  let isActiveGlobally = juror.activeJuror // BEfore this stake it's stored.
+  if (isActive){
+    if (stake.gt(BigInt.fromI32(0)) && newTotalStaked.gt(BigInt.fromI32(0))){
+      // active juror in this court changing it's stake in this court.
       log.debug("checkJurorStatus: {} is an active juror changing his stake in the court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
       return 1!
-    }
-  } else if (isActive && stake.equals(BigInt.fromI32(0))){
-    if (totalStaked.equals(BigInt.fromI32(0))){
-      // It's an active juror quitting all the courts
-      log.debug("checkJurorStatus: {} is an active juror quitting from all the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(),totalStaked.toString(), stake.toString()])
+    } else if (stake.equals(BigInt.fromI32(0)) && newTotalStaked.gt(BigInt.fromI32(0))){
+      // active juror of this court, leaving just this court
+      
+      return 0!
+    } else if (stake.equals(BigInt.fromI32(0)) && newTotalStaked.equals(BigInt.fromI32(0))){
+      // active juror leaving all the courts
+      log.debug("checkJurorStatus: {} is an active juror quitting from all the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(),newTotalStaked.toString(), stake.toString()])
       return -1!
     } else{
-      // It's an active juror quitting this court
-      log.debug("checkJurorStatus: {} is an active juror quitting just from this courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(),totalStaked.toString(), stake.toString()])
-      return 0!
+      log.error("checkJurorStatus: Reaching an imposible condition¿?. stake = {}, newTotalStaked = {}, activeInThisCourt = {}", [
+        stake.toString(), newTotalStaked.toString(), String(isActive)
+      ])
     }
-  } else {
+  } else{
+    // not an active juror in this court.
+    if (isActiveGlobally){
+      // Active juror in other court, but not in this court.
+      if (stake.gt(BigInt.fromI32(0))){
+        // this juror is staking for the first time in this court.
+        log.debug("checkJurorStatus: {} is an active juror but first time in this court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
+        return 3!
+      }
+    } else {
+      if (stake.gt(BigInt.fromI32(0))){
+        // inactive juror staking
+        log.debug("checkJurorStatus: Hey, {} is a juror returning to the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), newTotalStaked.toString(), stake.toString()])
+        return 2!
+      } else {
+        // inactive juror unstaking (double txs?)
+        log.debug("checkJurorStatus: Mmmm, this is an inactive juror staking 0? The juror {} is sending the tx twice?. Returning status as 1 (not change active/inactive jurors",[juror.id])
+        return 1!
+      }
+    }
+  }
   log.error("checkJurorStatus: Mmmm, This should never be met, what's doing the juror {} with stake {}?. TotalStaked {}. Returning 1",[juror.id, stake.toString(), juror.totalStaked.toString()])
   return 1!
-  }
 }
 
 function getCourtStakeValue(court:BigInt, address:Address): BigInt {
