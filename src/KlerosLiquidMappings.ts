@@ -479,7 +479,7 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     court.timePeriods = subcourtObj.value1
     
     let parentCourtID = courtObj.value0
-    if (parentCourtID != subcourtID){
+    if (parentCourtID.notEqual(subcourtID)){
       let parentCourt = getOrCreateCourt(parentCourtID,KLContract)
       court.parent = parentCourt.id
       // updating childs in parent court
