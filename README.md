@@ -22,13 +22,13 @@ The graph have global counters to track different properties and metrics of inte
 
 [x] Total disputes closed (closedDisputes)
 
-[!] Count of Active jurors (wallets)
+[x] Count of Active jurors (wallets)
 
-[!] Count of inactive jurors (wallets)
+[X] Count of inactive jurors (wallets)
 
 [x] Total jurors drawn at least once (drawnJurors)
 
-[!] PNK staked in the all the courts (tokenStaked)
+[x] PNK staked in the all the courts (tokenStaked)
 
 [] Total ETH distributed as fees
 
@@ -40,11 +40,11 @@ The graph have global counters to track different properties and metrics of inte
 Each court is an entity, where different metrics are stored.
 [x] subcourtID
 
-[!] Number of Disputes raised in this court (disputesNum)
+[x] Number of Disputes raised in this court (disputesNum)
 
-[!] Number of Disputes already closed (disputesClosed)
+[x] Number of Disputes already closed (disputesClosed)
 
-[!] Number of Disputes ongoing (disputesOngoing)
+[x] Number of Disputes ongoing (disputesOngoing)
 
 [x] List of all the disputes
 
@@ -56,9 +56,9 @@ Each court is an entity, where different metrics are stored.
 
 [x] policy
 
-[!] Number of Active Jurors (considering all the court childs)
+[x] Number of Active Jurors (considering all the court childs)
 
-[!] PNK Staked (considering all the court childs).
+[x] PNK Staked (considering all the court childs).
 
 [x] hiddenVotes (if the options it's activated in this court)
 
@@ -149,7 +149,7 @@ Each vote has it's own entity
 
 [x] disputes created
 
-[!] Number of disputes created
+[x] Number of disputes created
 
 [x] votes (list of all the votes)
 
