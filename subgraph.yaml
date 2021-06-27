@@ -56,9 +56,9 @@ dataSources:
     name: PolicyRegistry
     network: mainnet
     source:
-      address: "0x03a9458d77dd705829fa758c64dbe770385295cc"
+      address: "0xCf1f07713d5193FaE5c1653C9f61953D048BECe4"
       abi: PolicyRegistry
-      startBlock: 7303699
+      startBlock: 10175793
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4

@@ -347,6 +347,15 @@ export class KlerosCounter extends Entity {
     this.set("inactiveJurors", Value.fromBigInt(value));
   }
 
+  get drawnJurors(): BigInt {
+    let value = this.get("drawnJurors");
+    return value.toBigInt();
+  }
+
+  set drawnJurors(value: BigInt) {
+    this.set("drawnJurors", Value.fromBigInt(value));
+  }
+
   get tokenStaked(): BigInt {
     let value = this.get("tokenStaked");
     return value.toBigInt();
@@ -354,6 +363,33 @@ export class KlerosCounter extends Entity {
 
   set tokenStaked(value: BigInt) {
     this.set("tokenStaked", Value.fromBigInt(value));
+  }
+
+  get totalETHFees(): BigInt {
+    let value = this.get("totalETHFees");
+    return value.toBigInt();
+  }
+
+  set totalETHFees(value: BigInt) {
+    this.set("totalETHFees", Value.fromBigInt(value));
+  }
+
+  get totalPNKredistributed(): BigInt {
+    let value = this.get("totalPNKredistributed");
+    return value.toBigInt();
+  }
+
+  set totalPNKredistributed(value: BigInt) {
+    this.set("totalPNKredistributed", Value.fromBigInt(value));
+  }
+
+  get totalUSDthroughContract(): BigInt {
+    let value = this.get("totalUSDthroughContract");
+    return value.toBigInt();
+  }
+
+  set totalUSDthroughContract(value: BigInt) {
+    this.set("totalUSDthroughContract", Value.fromBigInt(value));
   }
 }
 
@@ -387,13 +423,13 @@ export class StakeSet extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get address(): Bytes {
+  get address(): string {
     let value = this.get("address");
-    return value.toBytes();
+    return value.toString();
   }
 
-  set address(value: Bytes) {
-    this.set("address", Value.fromBytes(value));
+  set address(value: string) {
+    this.set("address", Value.fromString(value));
   }
 
   get subcourtID(): BigInt {
@@ -421,6 +457,266 @@ export class StakeSet extends Entity {
 
   set newTotalStake(value: BigInt) {
     this.set("newTotalStake", Value.fromBigInt(value));
+  }
+}
+
+export class Juror extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save Juror entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save Juror entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("Juror", id.toString(), this);
+  }
+
+  static load(id: string): Juror | null {
+    return store.get("Juror", id) as Juror | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get subcourtsIDs(): Array<string> | null {
+    let value = this.get("subcourtsIDs");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set subcourtsIDs(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("subcourtsIDs");
+    } else {
+      this.set("subcourtsIDs", Value.fromStringArray(value as Array<string>));
+    }
+  }
+
+  get currentStakes(): Array<string> | null {
+    let value = this.get("currentStakes");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set currentStakes(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("currentStakes");
+    } else {
+      this.set("currentStakes", Value.fromStringArray(value as Array<string>));
+    }
+  }
+
+  get allStakes(): Array<string> | null {
+    let value = this.get("allStakes");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set allStakes(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("allStakes");
+    } else {
+      this.set("allStakes", Value.fromStringArray(value as Array<string>));
+    }
+  }
+
+  get totalStaked(): BigInt {
+    let value = this.get("totalStaked");
+    return value.toBigInt();
+  }
+
+  set totalStaked(value: BigInt) {
+    this.set("totalStaked", Value.fromBigInt(value));
+  }
+
+  get activeJuror(): boolean {
+    let value = this.get("activeJuror");
+    return value.toBoolean();
+  }
+
+  set activeJuror(value: boolean) {
+    this.set("activeJuror", Value.fromBoolean(value));
+  }
+
+  get disputesAsJuror(): Array<string> | null {
+    let value = this.get("disputesAsJuror");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set disputesAsJuror(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("disputesAsJuror");
+    } else {
+      this.set(
+        "disputesAsJuror",
+        Value.fromStringArray(value as Array<string>)
+      );
+    }
+  }
+
+  get numberOfDisputesAsJuror(): BigInt {
+    let value = this.get("numberOfDisputesAsJuror");
+    return value.toBigInt();
+  }
+
+  set numberOfDisputesAsJuror(value: BigInt) {
+    this.set("numberOfDisputesAsJuror", Value.fromBigInt(value));
+  }
+
+  get disputesAsCreator(): Array<string> | null {
+    let value = this.get("disputesAsCreator");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set disputesAsCreator(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("disputesAsCreator");
+    } else {
+      this.set(
+        "disputesAsCreator",
+        Value.fromStringArray(value as Array<string>)
+      );
+    }
+  }
+
+  get numberOfDisputesCreated(): BigInt {
+    let value = this.get("numberOfDisputesCreated");
+    return value.toBigInt();
+  }
+
+  set numberOfDisputesCreated(value: BigInt) {
+    this.set("numberOfDisputesCreated", Value.fromBigInt(value));
+  }
+
+  get votes(): Array<string> | null {
+    let value = this.get("votes");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set votes(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("votes");
+    } else {
+      this.set("votes", Value.fromStringArray(value as Array<string>));
+    }
+  }
+}
+
+export class CourtStake extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save CourtStake entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save CourtStake entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("CourtStake", id.toString(), this);
+  }
+
+  static load(id: string): CourtStake | null {
+    return store.get("CourtStake", id) as CourtStake | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get court(): string {
+    let value = this.get("court");
+    return value.toString();
+  }
+
+  set court(value: string) {
+    this.set("court", Value.fromString(value));
+  }
+
+  get juror(): string {
+    let value = this.get("juror");
+    return value.toString();
+  }
+
+  set juror(value: string) {
+    this.set("juror", Value.fromString(value));
+  }
+
+  get stake(): BigInt {
+    let value = this.get("stake");
+    return value.toBigInt();
+  }
+
+  set stake(value: BigInt) {
+    this.set("stake", Value.fromBigInt(value));
+  }
+
+  get timestamp(): BigInt {
+    let value = this.get("timestamp");
+    return value.toBigInt();
+  }
+
+  set timestamp(value: BigInt) {
+    this.set("timestamp", Value.fromBigInt(value));
+  }
+
+  get blockNumber(): BigInt {
+    let value = this.get("blockNumber");
+    return value.toBigInt();
+  }
+
+  set blockNumber(value: BigInt) {
+    this.set("blockNumber", Value.fromBigInt(value));
+  }
+
+  get txid(): Bytes {
+    let value = this.get("txid");
+    return value.toBytes();
+  }
+
+  set txid(value: Bytes) {
+    this.set("txid", Value.fromBytes(value));
   }
 }
 
@@ -472,13 +768,13 @@ export class Dispute extends Entity {
     this.set("arbitrable", Value.fromBytes(value));
   }
 
-  get creator(): Bytes {
+  get creator(): string {
     let value = this.get("creator");
-    return value.toBytes();
+    return value.toString();
   }
 
-  set creator(value: Bytes) {
-    this.set("creator", Value.fromBytes(value));
+  set creator(value: string) {
+    this.set("creator", Value.fromString(value));
   }
 
   get subcourtID(): string {
@@ -601,6 +897,15 @@ export class Dispute extends Entity {
     } else {
       this.set("metaevidente", Value.fromString(value as string));
     }
+  }
+
+  get txid(): Bytes {
+    let value = this.get("txid");
+    return value.toBytes();
+  }
+
+  set txid(value: Bytes) {
+    this.set("txid", Value.fromBytes(value));
   }
 }
 
@@ -728,13 +1033,13 @@ export class Vote extends Entity {
     this.set("voteID", Value.fromBigInt(value));
   }
 
-  get address(): Bytes {
+  get address(): string {
     let value = this.get("address");
-    return value.toBytes();
+    return value.toString();
   }
 
-  set address(value: Bytes) {
-    this.set("address", Value.fromBytes(value));
+  set address(value: string) {
+    this.set("address", Value.fromString(value));
   }
 
   get choice(): BigInt | null {
@@ -920,118 +1225,6 @@ export class Draw extends Entity {
 
   set timestamp(value: BigInt) {
     this.set("timestamp", Value.fromBigInt(value));
-  }
-}
-
-export class Juror extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-  }
-
-  save(): void {
-    let id = this.get("id");
-    assert(id !== null, "Cannot save Juror entity without an ID");
-    assert(
-      id.kind == ValueKind.STRING,
-      "Cannot save Juror entity with non-string ID. " +
-        'Considering using .toHex() to convert the "id" to a string.'
-    );
-    store.set("Juror", id.toString(), this);
-  }
-
-  static load(id: string): Juror | null {
-    return store.get("Juror", id) as Juror | null;
-  }
-
-  get id(): string {
-    let value = this.get("id");
-    return value.toString();
-  }
-
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get subcourtsIDs(): Array<string> | null {
-    let value = this.get("subcourtsIDs");
-    if (value === null || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toStringArray();
-    }
-  }
-
-  set subcourtsIDs(value: Array<string> | null) {
-    if (value === null) {
-      this.unset("subcourtsIDs");
-    } else {
-      this.set("subcourtsIDs", Value.fromStringArray(value as Array<string>));
-    }
-  }
-
-  get totalStaked(): BigInt {
-    let value = this.get("totalStaked");
-    return value.toBigInt();
-  }
-
-  set totalStaked(value: BigInt) {
-    this.set("totalStaked", Value.fromBigInt(value));
-  }
-
-  get activeJuror(): boolean {
-    let value = this.get("activeJuror");
-    return value.toBoolean();
-  }
-
-  set activeJuror(value: boolean) {
-    this.set("activeJuror", Value.fromBoolean(value));
-  }
-
-  get disputesAsJuror(): Array<string> | null {
-    let value = this.get("disputesAsJuror");
-    if (value === null || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toStringArray();
-    }
-  }
-
-  set disputesAsJuror(value: Array<string> | null) {
-    if (value === null) {
-      this.unset("disputesAsJuror");
-    } else {
-      this.set(
-        "disputesAsJuror",
-        Value.fromStringArray(value as Array<string>)
-      );
-    }
-  }
-
-  get numberOfDisputesCreated(): BigInt {
-    let value = this.get("numberOfDisputesCreated");
-    return value.toBigInt();
-  }
-
-  set numberOfDisputesCreated(value: BigInt) {
-    this.set("numberOfDisputesCreated", Value.fromBigInt(value));
-  }
-
-  get votes(): Array<string> | null {
-    let value = this.get("votes");
-    if (value === null || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toStringArray();
-    }
-  }
-
-  set votes(value: Array<string> | null) {
-    if (value === null) {
-      this.unset("votes");
-    } else {
-      this.set("votes", Value.fromStringArray(value as Array<string>));
-    }
   }
 }
 
