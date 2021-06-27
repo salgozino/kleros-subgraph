@@ -1,0 +1,10 @@
+// mocha tsconfig
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2015",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "types": ["mocha", "chai", "node"]
+  }
+}
