@@ -69,36 +69,37 @@ export function handleStakeSet(event: StakeSetEvent): void {
 
 export function handleDisputeCreation(event: DisputeCreationEvent): void {
   log.debug("handleDisputeCreation: Creating a new dispute with id {}", [event.params._disputeID.toString()])
-  let entity = new Dispute(event.params._disputeID.toString())
-  entity.disputeID = event.params._disputeID
-  entity.arbitrable = event.params._arbitrable
-  entity.txid = event.transaction.hash
+  let dispute = new Dispute(event.params._disputeID.toString())
+  dispute.disputeID = event.params._disputeID
+  dispute.arbitrable = event.params._arbitrable
+  dispute.txid = event.transaction.hash
 
   // log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(event.params._disputeID)
   let court = getOrCreateCourt(disputeData.value0, event.address)
   // define creator
+  // using the same naming for juror and creator as entities isn't the best practive
   let creator = getOrCreateJuror(event.transaction.from, null, BigInt.fromI32(0), event.address)
-  entity.creator = creator.id
+  dispute.creator = creator.id
   // sum +1 in the counter of the disputes created by this user
   creator.numberOfDisputesCreated = creator.numberOfDisputesCreated.plus(BigInt.fromI32(1))
   creator.save()
 
-  entity.subcourtID = court.id
-  entity.numberOfChoices = disputeData.value2
-  entity.lastPeriodChange = disputeData.value4
-  entity.period = getPeriodString(disputeData.value3)
-  entity.startTime = event.block.timestamp
-  entity.ruled = disputeData.value7
+  dispute.subcourtID = court.id
+  dispute.numberOfChoices = disputeData.value2
+  dispute.lastPeriodChange = disputeData.value4
+  dispute.period = getPeriodString(disputeData.value3)
+  dispute.startTime = event.block.timestamp
+  dispute.ruled = disputeData.value7
   
   log.debug("handleDisputeCreation: saving dispute {} entity",[event.params._disputeID.toString()])
-  entity.save()
+  dispute.save()
   
   // round creation
   log.debug("handleDisputeCreation: Creating the round 0 for the dispute {}", [event.params._disputeID.toString()])
   let round = new Round(event.params._disputeID.toString()+"-"+BigInt.fromI32(0).toString())
-  round.dispute = entity.id
+  round.dispute = dispute.id
   round.startTime = event.block.timestamp
   round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
   log.debug("handleDisputeCreation: saving the round 0 for the dispute {}", [event.params._disputeID.toString()])
@@ -106,12 +107,14 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
 
   //update counters
   // sum +1 in the court counter
+  log.debug("handleDisputeCreation: Adding 1 in the disputesNum and disputesOngoing fields of the court {}",[court.id])
   court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
   court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
   court.save()
+
   // Kleros Counters
   let kc = getOrInitializeKlerosCounter()
-  log.debug("handleDisputeCreation: Updating KlerosCounters", [])
+  log.debug("handleDisputeCreation: Adding 1 in the disputesCount, openDisputes and evidencePhaseDisputes counter", [])
   kc.disputesCount = kc.disputesCount.plus(BigInt.fromI32(1))
   kc.openDisputes = kc.openDisputes.plus(BigInt.fromI32(1))
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
@@ -218,13 +221,14 @@ export function handleCastVote(call: CastVoteCall): void {
 export function handleNewPeriod(event: NewPeriodEvent): void {
   let disputeID = event.params._disputeID
   log.debug("handleNewPeriod: new period for the dispute {}", [disputeID.toString()])
-  let entity = new NewPeriod(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
-  entity.newPeriod = getPeriodString(event.params._period)
-  entity.disputeId = event.params._disputeID
-  entity.save()
+  let period = new NewPeriod(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
+  period.newPeriod = getPeriodString(event.params._period)
+  period.disputeId = disputeID
+  period.save()
 
   // update the dispute period
   // log.debug("handleNewPeriod: Updating the dispute {} information", [disputeID.toString()])
+  
   let dispute = Dispute.load(disputeID.toString())
   if (dispute == null){
     log.error("handleNewPeriod: Error trying to load the dispute with id {}. The new period will not be stored", [disputeID.toString()])
@@ -306,17 +310,17 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   
   let oldcourt = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
   let court = getOrCreateCourt(disputeData.value0, event.address)
-  if (oldcourt != court){
-    log.debug("handleAppealDecision: Court Jump! in dispute {}. oldCourt it's {} and New court it's {} ", [dispute.id,oldcourt.id,court.id])
+  if (oldcourt.id != court.id){
+    log.debug("handleAppealDecision: courtJump! in dispute {}. oldCourt it's {} and New court it's {} ", [dispute.id,oldcourt.id,court.id])
     dispute.subcourtID = court.id
     dispute.save()
     // update oldcourt counters
-    log.debug("handleAppealDecision: Decreasing disputes in the old court {}", [oldcourt.id])
+    log.debug("handleAppealDecision: Decreasing in 1 due to courtJump disputesOngoing and disputesNum in the old court {}", [oldcourt.id])
     oldcourt.disputesOngoing = oldcourt.disputesOngoing.minus(BigInt.fromI32(1))
     oldcourt.disputesNum = oldcourt.disputesNum.minus(BigInt.fromI32(1))
     oldcourt.save()
     // update new court counters
-    log.debug("handleAppealDecision: Increasing disputes in the new court after jump: {}", [court.id])
+    log.debug("handleAppealDecision: Increasing in 1 due to courtJump disputesNum and disputesOngoing in the new court {}", [court.id])
     court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
     court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
     court.save()
