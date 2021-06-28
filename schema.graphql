@@ -27,7 +27,7 @@ type Court @entity {
   "List of jurors of this court"
   jurors: [Juror!] @derivedFrom(field:"subcourtsIDs")
   "Court childrens"
-  childs: [Court!]
+  childs: [Court!]!
   "Parent Court"
   parent: Court
   "Current policy for this Court"
