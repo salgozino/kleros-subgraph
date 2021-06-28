@@ -125,8 +125,10 @@ export function handleDraw(event: DrawEvent): void {
   let disputeID = event.params._disputeID
   let roundNumber = event.params._appeal
   let voteID = event.params._voteID
-  log.info("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}", [disputeID.toString(), voteID.toString(), roundNumber.toString()])
-  let drawID = disputeID.toString()+"-"+voteID.toString()
+  
+  let drawID = getVoteId(disputeID, roundNumber, voteID)
+  log.info("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}. drawID={}",
+     [disputeID.toString(), voteID.toString(), roundNumber.toString(), drawID])
   // create draw Entity
   let drawEntity = new Draw(drawID)
   drawEntity.address = event.params._address
@@ -142,17 +144,17 @@ export function handleDraw(event: DrawEvent): void {
   let dispute = Dispute.load(disputeID.toString())
   log.debug("handleDraw: loaded round id is {}", [round.id])
   log.debug("handleDraw: loaded dispute id is {}", [dispute.id])
-  let entity = new Vote(drawID)
-  let court = Court.load(dispute.subcourtID)
+  let voteEntity = new Vote(drawID)
+  let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
   let juror = getOrCreateJuror(event.params._address, BigInt.fromString(court.id), BigInt.fromI32(0), event.address)
-  entity.address = juror.id
-  entity.dispute = dispute.id
-  entity.round = round.id
-  entity.voteID = voteID
+  voteEntity.address = juror.id
+  voteEntity.dispute = dispute.id
+  voteEntity.round = round.id
+  voteEntity.voteID = voteID
   // define choice 0 and not voted
-  entity.choice = BigInt.fromI32(0)
-  entity.voted = false
-  entity.save()
+  voteEntity.choice = BigInt.fromI32(0)
+  voteEntity.voted = false
+  voteEntity.save()
   log.debug("handleDraw: vote entity stored",[])
 
   // it's the first vote of this juror?
@@ -166,11 +168,11 @@ export function handleDraw(event: DrawEvent): void {
     juror.save()
   } 
   else {
-    // check if the juror was drawn already in this dispute?
-    // TODO! this is not working properly..
+    // check if the juror was drawn already in this dispute
     let alreadyDrawn = false
     for (let i=0; i<voteID.toI32(); i++){
-      let otherVote = Draw.load(disputeID.toString()+"-"+i.toString())
+      let tempDrawID = getVoteId(disputeID, roundNumber, BigInt.fromI32(i))
+      let otherVote = Draw.load(tempDrawID)
       if (otherVote.address == event.params._address){
         alreadyDrawn = true
       }
@@ -194,10 +196,11 @@ export function handleCastVote(call: CastVoteCall): void {
     log.error("handleCastVote: Error trying to load the dispute with id {}. The vote will not be stored", [disputeID.toString()])
     return
   }
+  let roundNum = getLastRound(disputeID)
   
   // update votes
   for (let i = 0; i < voteIDs.length; i++) {
-    let id = disputeID.toString()+"-"+voteIDs[i].toString()
+    let id = getVoteId(disputeID, roundNum, voteIDs[i])
     log.debug("handleCastVote: Storing the vote {}",[id])
     let vote = Vote.load(id)
     if (vote == null){
@@ -287,17 +290,10 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   // log.debug("handleAppealDecision: Dispute loaded with id {}",[dispute.id])
   
   // Iterate searching for the last round in this dispute
-  let roundNum = BigInt.fromI32(0)
-  let roundID = disputeID.toString()+"-"+roundNum.toString()
-  let lastround = Round.load(roundID)
-  do {
-    roundNum = roundNum.plus(BigInt.fromI32(1))
-    roundID = disputeID.toString()+"-"+roundNum.toString()
-    log.debug("handleAppealDecision: searching for roundID {}",[roundID])
-    lastround = Round.load(roundID)
-  }
-  while (lastround != null);
-
+  let roundNum = getLastRound(disputeID)
+  // adding 1 to create the new round
+  roundNum = roundNum.plus(BigInt.fromI32(1))
+  let roundID = disputeID.toString()+"-"+roundNum.toString()  
   log.debug("handleAppealDecision: new round number is {}. Round id = {}", [roundNum.toString(), roundID])
   let round = new Round(roundID)
   round.dispute = dispute.id
@@ -502,6 +498,27 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     kc.save()
   }
   return court!
+}
+
+function getVoteId(dispute:BigInt, roundNum:BigInt, voteId:BigInt): string{
+  return dispute.toString()+"-"+roundNum.toString()+"-"+voteId.toString()
+}
+
+function getLastRound(disputeID:BigInt):BigInt{
+  // Iterate searching for the last round in this dispute
+  let roundNum = BigInt.fromI32(0)
+  let roundID = disputeID.toString()+"-"+roundNum.toString()
+  let lastround = Round.load(roundID)
+  if (lastround == null) {return null}
+  do {
+    roundNum = roundNum.plus(BigInt.fromI32(1))
+    roundID = disputeID.toString()+"-"+roundNum.toString()
+    //log.debug("getLastRound: searching for roundID {}",[roundID])
+    lastround = Round.load(roundID)
+  }
+  while (lastround != null);
+  // the last round searched doesn't exist, so I've to return the last one??
+  return roundNum.minus(BigInt.fromI32(1))!
 }
 
 function getCourtStakeId(address: Address, courtID: BigInt): string {
