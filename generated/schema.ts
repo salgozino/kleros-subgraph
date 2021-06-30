@@ -112,21 +112,13 @@ export class Court extends Entity {
     }
   }
 
-  get childs(): Array<string> | null {
+  get childs(): Array<string> {
     let value = this.get("childs");
-    if (value === null || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toStringArray();
-    }
+    return value.toStringArray();
   }
 
-  set childs(value: Array<string> | null) {
-    if (value === null) {
-      this.unset("childs");
-    } else {
-      this.set("childs", Value.fromStringArray(value as Array<string>));
-    }
+  set childs(value: Array<string>) {
+    this.set("childs", Value.fromStringArray(value));
   }
 
   get parent(): string | null {

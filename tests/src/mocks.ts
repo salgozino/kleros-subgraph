@@ -245,18 +245,101 @@ export class KlerosLiquid {
     static bind(contract: Address) {
         return {
             courts: (id: BigInt2) => {
+                const courtsConfig = {
+                    0: {
+                        parent: new BigInt2(0),
+                    },
+                    1: {
+                        parent: new BigInt2(0),
+                    },
+                    2: {
+                        parent: new BigInt2(1),
+                    },
+                    3: {
+                        parent: new BigInt2(2),
+                    },
+                    4: {
+                        parent: new BigInt2(1),
+                    },
+                    5: {
+                        parent: new BigInt2(0),
+                    },
+                    6: {
+                        parent: new BigInt2(0),
+                    },
+                    7: {
+                        parent: new BigInt2(0),
+                    },
+                    8: {
+                        parent: new BigInt2(0),
+                    },
+                    9: {
+                        parent: new BigInt2(0),
+                    },
+                    10: {
+                        parent: new BigInt2(0),
+                    },
+                    11: {
+                        parent: new BigInt2(10),
+                    },
+                    12: {
+                        parent: new BigInt2(9),
+                    },
+                    13: {
+                        parent: new BigInt2(6),
+                    },
+                    14: {
+                        parent: new BigInt2(6),
+                    },
+                    15: {
+                        parent: new BigInt2(6),
+                    },
+                    16: {
+                        parent: new BigInt2(6),
+                    },
+                    17: {
+                        parent: new BigInt2(6),
+                    },
+                    18: {
+                        parent: new BigInt2(6),
+                    },
+                    19: {
+                        parent: new BigInt2(6),
+                    },
+                    20: {
+                        parent: new BigInt2(6),
+                    },
+                    21: {
+                        parent: new BigInt2(6),
+                    },
+                    22: {
+                        parent: new BigInt2(0),
+                    },
+                    23: {
+                        parent: new BigInt2(0),
+                    },
+                }
+
                 return {
-                    value0: new BigInt2(1),
+                    // parentCourtID
+                    value0: courtsConfig[id.toString()].parent,
+                    // hiddenVotes
                     value1: new BigInt2(1),
+                    // minStake
                     value2: new BigInt2(1),
+                    // alpha
                     value3: new BigInt2(1),
+                    // feeForJuror
                     value4: new BigInt2(1),
-                    value5: new BigInt2(1),
+                    // jurorsForCourtJump
+                    value5: new BigInt2(1)
                 }
             },
             getSubcourt: (id: BigInt2) => {
                 return {
+                    // parentCourtID
                     value0: new BigInt2(1),
+                    // timePeriods
                     value1: [new BigInt2(1)],
                 }
             },
