@@ -48,7 +48,7 @@ enum Period {
 
 export function handleStakeSet(event: StakeSetEvent): void {
   log.debug("handleSetStake: creating a new setStake", [])
-  let jurorStatus = checkJurorStatus(event.params._address, event.params._stake, event.params._newTotalStake, event.params._subcourtID)
+
   let entity = new StakeSet(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   )
@@ -62,9 +62,8 @@ export function handleStakeSet(event: StakeSetEvent): void {
   log.info("handleStakeSet: stake set stored",[])
   
   // update the juror entity and the courtStake
-  updateJurorStake(event.params._address, event.params._subcourtID, event.params._stake, 
-    event.params._newTotalStake, event.block.timestamp, event.block.number, event.transaction.hash,
-    jurorStatus, event.address) 
+  updateJurorStake(event.params._address, event.params._subcourtID, event.params._stake,
+      event.params._newTotalStake, event.block.timestamp, event.block.number, event.transaction.hash, event.address)
 }
 
 export function handleDisputeCreation(event: DisputeCreationEvent): void {
@@ -569,15 +568,24 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
   return juror!
 }
 
-function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, totalStaked: BigInt, 
-  timestamp: BigInt, blockNumber: BigInt, txID:Bytes, 
-  jurorStatus:number, KLContract: Address): void{
+function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, totalStaked: BigInt,
+                          timestamp: BigInt, blockNumber: BigInt, txID:Bytes, KLContract: Address): void{
   log.debug("updateJurorStake: updating court stake for juror {} and court {}", [address.toHexString(), courtID.toString()])
 
   let juror = getOrCreateJuror(address, courtID, totalStaked, KLContract)
   let court = getOrCreateCourt(courtID, KLContract)
 
   let oldStake = getCourtStakeValue(courtID, address)
+
+  if (
+      (oldStake.equals(BigInt.fromI32(0)) && totalStaked.equals(BigInt.fromI32(0)))
+      || (stake.equals(BigInt.fromI32(0)) && !isActiveInThisCourt(courtID, address))
+  ) {
+    // nothing to do
+    return
+  }
+
+  let jurorStatus = checkJurorStatus(address, stake, totalStaked, courtID)
 
   createOrUpdateCourtStake(courtID, stake, address, timestamp, blockNumber, txID, KLContract)
 
