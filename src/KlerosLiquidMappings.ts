@@ -607,15 +607,23 @@ function updateCourtDueToStake(jurorAddress: Address, courtID:BigInt, updatingPa
   let court = getOrCreateCourt(courtID, KLContract)
   
   if (jurorStatus < 1){
-    // juror quitting this court
-    log.debug("updateCourtTokenStaked: Removing the juror from court {}. OldStake {}, NewStake {}",[court.id, oldStake.toString(), newStake.toString()])
-    court.activeJurors = court.activeJurors.minus(BigInt.fromI32(1))
+    if(
+        // if the juror is unstaking from this court and he's not staked in a sub court...
+        (!updatingParent && !isActiveInSubCourt(jurorAddress, courtID, KLContract, false))
+        // or if we are updating a parent court and the juror is not already staked in the parent court or any subcourt...
+        || (updatingParent && !isActiveInThisCourt(courtID, jurorAddress) && !isActiveInSubCourt(jurorAddress, courtID, KLContract, false))
+    ) {
+      log.debug("updateCourtTokenStaked: Removing the juror from court {}. OldStake {}, NewStake {}",[court.id, oldStake.toString(), newStake.toString()])
+      court.activeJurors = court.activeJurors.minus(BigInt.fromI32(1))
+    } else {
+      log.debug("updateCourtTokenStaked: Juror unstaking from child court but still staked in parent court {}. OldStake {}, NewStake {}",[court.id, oldStake.toString(), newStake.toString()])
+    }
   } else if (jurorStatus > 1){
     if (
         // if the juror is staking in this court and he's not already staked in a sub court...
-        (!updatingParent && !isActiveInSubCourt(jurorAddress, courtID, KLContract))
-        // or if we are updating a parent court and the juror is not already staked in the parent court...
-        || (updatingParent && !isActiveInThisCourt(courtID, jurorAddress))) {
+        (!updatingParent && !isActiveInSubCourt(jurorAddress, courtID, KLContract, false))
+        // or if we are updating a parent court and the juror is not already staked in the parent court and is only staked in one subcourt (the subcourt that triggers the parent update)...
+        || (updatingParent && !isActiveInThisCourt(courtID, jurorAddress)) && isActiveInSubCourt(jurorAddress, courtID, KLContract, true)) {
       log.debug("updateCourtTokenStaked: Adding the new juror to court {}. OldStake {}, NewStake {}",[court.id, oldStake.toString(), newStake.toString()])
       court.activeJurors = court.activeJurors.plus(BigInt.fromI32(1))
     } else {
@@ -711,19 +719,35 @@ function isActiveInThisCourt(court:BigInt, address:Address): boolean {
   return getCourtStakeValue(court, address).gt(BigInt.fromI32(0))
 }
 
-function isActiveInSubCourt(jurorAddress: Address, courtID: BigInt, KLContract: Address): boolean {
+function getCourtTree(courtID: BigInt, KLContract: Address): BigInt[] {
   let court = getOrCreateCourt(courtID, KLContract)
   let subCourts = court.childs
 
-  for (let i = 0; i < subCourts.length; i++) {
-    let courtStake = CourtStake.load(getCourtStakeId(jurorAddress, BigInt.fromString(subCourts[i])))
+  let tree: BigInt[] = [courtID]
 
-    if (courtStake !== null && courtStake.stake.gt(BigInt.fromI32(0))) {
-      return true
+  for (let i = 0; i < subCourts.length; i++) {
+    tree = tree.concat(getCourtTree(BigInt.fromString(subCourts[i]), KLContract))
+  }
+
+  return tree
+}
+
+function isActiveInSubCourt(jurorAddress: Address, courtID: BigInt, KLContract: Address, onlyOneSubCourt: boolean): boolean {
+  let activeCount = 0
+
+  let courtTree = getCourtTree(courtID, KLContract)
+
+  for (let i = 0; i < courtTree.length; i++) {
+    if (courtID.notEqual(courtTree[i])) {
+      let courtStake = CourtStake.load(getCourtStakeId(jurorAddress, courtTree[i]))
+
+      if (courtStake !== null && courtStake.stake.gt(BigInt.fromI32(0))) {
+        activeCount++
+      }
     }
   }
 
-  return false
+  return onlyOneSubCourt ? activeCount === 1 : activeCount > 0
 }
 
 function updateKCDueToStake(oldStake:BigInt, newStake:BigInt, jurorStatus:number): void{
