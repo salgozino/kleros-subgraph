@@ -561,7 +561,6 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
     juror.numberOfDisputesCreated = BigInt.fromI32(0)
     juror.numberOfDisputesAsJuror = BigInt.fromI32(0)
     juror.totalStaked = totalStake
-    juror.activeJuror = true
     if (courtID != null){
       let court = getOrCreateCourt(courtID!, KLContract)
       juror.subcourtsIDs = [court.id]
@@ -601,15 +600,9 @@ function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, total
   let subcourtIDs = juror.subcourtsIDs
   if (subcourtIDs.indexOf(court.id) == -1){
     subcourtIDs.push(court.id)
-  }    
-  juror.subcourtsIDs = subcourtIDs
-  if (totalStaked.equals(BigInt.fromI32(0))){
-    juror.activeJuror = false
-    log.debug("updateJurorStake: Saving {} as an inactive juror with {} pnk as total staked",[address.toHexString(), totalStaked.toString()])
-  } else{
-    juror.activeJuror = true
-    log.debug("updateJurorStake: Saving {} as an active juror with {} pnk as total staked",[address.toHexString(), totalStaked.toString()])
   }
+  juror.subcourtsIDs = subcourtIDs
+
   juror.save()
 }
 
@@ -672,7 +665,7 @@ function checkJurorStatus(address:Address, stake:BigInt, newTotalStaked:BigInt, 
     return 4!
   }
   // the juror exist
-  let isActiveGlobally = juror.activeJuror // BEfore this stake it's stored.
+  let isActiveGlobally = juror.totalStaked.gt(BigInt.fromI32(0)) // BEfore this stake it's stored.
   if (isActive){
     if (stake.gt(BigInt.fromI32(0)) && newTotalStaked.gt(BigInt.fromI32(0))){
       // active juror in this court changing it's stake in this court.

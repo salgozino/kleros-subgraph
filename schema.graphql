@@ -102,8 +102,6 @@ type Juror @entity {
   allStakes: [StakeSet!] @derivedFrom(field:"address")
   "Total staked across all the courts"
   totalStaked: BigInt!,
-  "It's an active juror?"
-  activeJuror: Boolean,
   "List of disputes where has at least one vote"
   disputesAsJuror: [Dispute!] @derivedFrom(field:"jurorsInvolved"),
   "Number of disputes that has been participating as juror"
