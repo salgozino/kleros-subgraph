@@ -387,6 +387,7 @@ class BaseEvent {
 }
 
 export class StakeSetEvent extends BaseEvent {
+    address: Address
     params: {
         _address: Address
         _subcourtID: BigInt2
@@ -415,6 +416,7 @@ export class NewPeriodEvent extends BaseEvent {
 }
 
 export class DrawEvent extends BaseEvent {
+    address: Address
     params: {
         _disputeID: BigInt2
         _appeal: BigInt2
@@ -499,8 +501,9 @@ export class Transaction {
     hash: Bytes
     from: Address
 
-    constructor(hash: string) {
+    constructor(hash: string, from: string) {
         this.hash = new Bytes(hash)
+        this.from = Address.fromString(from)
     }
 }
 

@@ -1,8 +1,44 @@
 import { expect } from 'chai';
-import allEvents from "./data/events-all.json"
-import {handleStakeSet} from "./src/KlerosLiquidMappings";
-import {Court} from "./src/mocks";
-import {DuneEventTx, StakeSetEventFromTxEvent} from "./src/helpers";
+import stakeSetEvents from "./data/events-stakeSet.json"
+import drawEvents from "./data/events-draw.json"
+import disputeCreationEvents from "./data/events-disputeCreation.json"
+import appealDecisionEvents from "./data/events-appealDecision.json"
+import {handleStakeSet, handleDraw, handleDisputeCreation, handleAppealDecision} from "./src/KlerosLiquidMappings";
+import {BigInt2, Court, KlerosCounter, store} from "./src/mocks";
+import {
+    DuneEventTx,
+    DuneStakeSetEventTx,
+    StakeSetEventFromTxEvent,
+    DuneDrawEventTx,
+    DrawEventFromTxEvent,
+    DuneDisputeCreationEventTx,
+    DisputeCreationEventFromTxEvent,
+    DuneAppealDecisionEventTx,
+    AppealDecisionEventFromTxEvent,
+} from "./src/helpers";
+
+// merge events
+const addEventType = (events: DuneEventTx[], eventType: string) => {
+    return events.map((event) => {
+        event.kleros_evt_type = eventType
+        return event
+    })
+}
+
+const allEvents = []
+    .concat(
+        addEventType(stakeSetEvents, 'stakeSet'),
+        addEventType(drawEvents, 'draw'),
+        addEventType(disputeCreationEvents, 'disputeCreation'),
+        addEventType(appealDecisionEvents, 'appealDecision'),
+    )
+    .sort(function(a: DuneEventTx, b: DuneEventTx) {
+        if (a.evt_block_number !== b.evt_block_number) {
+            return a.evt_block_number < b.evt_block_number ? -1 : 1;
+        }
+
+        return a.evt_index < b.evt_index ? -1 : 1;
+    })
 
 // staking_search_block = 12730954
 // dispute_search_block = 12489369
@@ -138,7 +174,15 @@ const courtsValues: CourtValues[] = [
 
 describe('Test Court Totals', () => {
     allEvents.forEach(function(event: DuneEventTx) {
-        handleStakeSet(StakeSetEventFromTxEvent(event));
+        if (event.kleros_evt_type === 'stakeSet') {
+            handleStakeSet(StakeSetEventFromTxEvent(event as DuneStakeSetEventTx));
+        } else if (event.kleros_evt_type === 'draw') {
+            handleDraw(DrawEventFromTxEvent(event as DuneDrawEventTx));
+        } else if (event.kleros_evt_type === 'disputeCreation') {
+            handleDisputeCreation(DisputeCreationEventFromTxEvent(event as DuneDisputeCreationEventTx));
+        } else if (event.kleros_evt_type === 'appealDecision') {
+            handleAppealDecision(AppealDecisionEventFromTxEvent(event as DuneAppealDecisionEventTx));
+        }
     });
 
     courtsValues.forEach((courtValue) => {
@@ -164,5 +208,40 @@ describe('Test Court Totals', () => {
             ).to.equal(courtValue.totalStaked);
         });
     })
+
+    const counterValues = {
+        // TODO: test all
+        //courtsCount: BigInt2.fromI32(24),
+        //disputesCount: BigInt2.fromI32(862),
+        //openDisputes: BigInt2.fromI32(-1),
+        //closedDisputes: BigInt2.fromI32(-1),
+        //evidencePhaseDisputes: BigInt2.fromI32(15),
+        //votingPhaseDisputes: BigInt2.fromI32(836),
+        //appealPhaseDisputes: BigInt2.fromI32(0),
+        activeJurors: BigInt2.fromI32(785),
+        //inactiveJurors: BigInt2.fromI32(-1),
+        //drawnJurors: BigInt2.fromI32(440),
+        tokenStaked: BigInt2.fromI32(158342085),
+        //totalETHFees: BigInt2.fromI32(348.746421855129),
+        //totalPNKredistributed: BigInt2.fromI32(2343914.2),
+        //totalUSDthroughContract: BigInt2.fromI32(-1),
+    }
+
+    const klerosCounter = KlerosCounter.load('ID')
+
+    Object
+        .keys(counterValues)
+        .forEach((key: string) => {
+            it(`Test ${key} counter`, () => {
+                let value = (klerosCounter[key] as BigInt2).toString()
+                if (key === 'tokenStaked') {
+                    value = value.substr(0, 9)
+                }
+
+                expect(
+                    value
+                ).to.equal((counterValues[key] as BigInt2).toString());
+            })
+        })
 
 });
