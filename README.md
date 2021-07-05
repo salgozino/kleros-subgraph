@@ -30,11 +30,11 @@ The graph have global counters to track different properties and metrics of inte
 
 [x] PNK staked in the all the courts (tokenStaked)
 
-[] Total ETH distributed as fees
+[x] Total ETH distributed as fees
 
-[] Total PNK redistributed within jurors
+[x] Total PNK redistributed from incoherent to coherent jurors
 
-[] Total USD passed through the contract (in deposits and jurors fees).
+[] Total USD passed through the contract (in deposits and jurors fees). (It's this posibble?)
 
 ### Court
 Each court is an entity, where different metrics are stored.
@@ -72,9 +72,9 @@ Each court is an entity, where different metrics are stored.
 
 [x] jurorsForCourtJump
 
-[] Fees already paid
+[x] Fees already paid
 
-[] PNK redistributed
+[x] PNK redistributed (from incoherent to coherent jurors)
 
 ### Dispute
 Each dispute entity has it own metrics and data.
@@ -153,6 +153,9 @@ Each vote has it's own entity
 
 [x] votes (list of all the votes)
 
+[x] eth rewards received (+ it's gain, - it's loss)
+
+[x] token rewards received (+ it's gain, - it's loss)
 ### Court Stake
 This is an extra entity useful to track the last stake event of each juror in each court. The ID it's wallet-courtID
 [x] Court
