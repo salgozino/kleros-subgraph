@@ -13,8 +13,7 @@ import {
   ChangeSubcourtJurorFeeCall,
   ChangeSubcourtJurorsForJumpCall,
   ChangeSubcourtTimesPerPeriodCall,
-  ExecuteRulingCall,
-  ChangeSubcourtTimesPerPeriodCall__Inputs
+  ExecuteRulingCall
 } from "../generated/KlerosLiquid/KlerosLiquid"
 import {
   StakeSet,
@@ -26,13 +25,15 @@ import {
   Court,
   KlerosCounter,
   Juror,
-  CourtStake
+  CourtStake,
+  TokenAndETHShift
 } from "../generated/schema"
 import {
   log,
   Address,
   BigInt,
-  Bytes
+  Bytes,
+  Entity
 } from "@graphprotocol/graph-ts";
 
 
@@ -277,7 +278,45 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
 }
 
 export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
+  let entity = new TokenAndETHShift(
+    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+    )
+  entity.disputeId = event.params._disputeID
+  entity.tokenAmount = event.params._tokenAmount
+  entity.ETHAmount = event.params._ETHAmount
+  entity.address = event.params._address
+  entity.blockNumber = event.block.number
+  entity.timestamp  = event.block.timestamp
+
+  // saving in juror entity
+  let juror = getOrCreateJuror(event.params._address, null, BigInt.fromI32(0), event.address)
+  juror.ethRewards = juror.ethRewards.plus(event.params._ETHAmount)
+  juror.tokenRewards = juror.tokenRewards.plus(event.params._tokenAmount)
+  juror.save()
+
+  // saving in kleros counter entity
+  let kc = getOrInitializeKlerosCounter()
+  kc.totalETHFees = kc.totalETHFees.plus(event.params._ETHAmount)
+  if (event.params._tokenAmount.gt(BigInt.fromI32(0))){
+    // just the positive transfers, if positive considered, 
+    kc.totalTokenRedistributed = kc.totalTokenRedistributed.plus(event.params._tokenAmount)
+  }
+  kc.save()
   
+  // saving in court entity
+  let dispute = Dispute.load(event.params._disputeID.toString())
+  if (dispute == null){
+    log.error("handleTokenAndETHShift: Dispute {} could not be found, eth and token shift not stored in the corresponding court", [event.params._disputeID.toString()])
+    return
+  }
+  let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
+  court.totalETHFees = court.totalETHFees.plus(event.params._ETHAmount)
+  if (event.params._tokenAmount.gt(BigInt.fromI32(0))){
+    // just the positive transfers, if positive considered, 
+    court.totalTokenRedistributed = court.totalTokenRedistributed.plus(event.params._tokenAmount)
+  }
+  court.save()
+
 }
 
 export function handleAppealDecision(event: AppealDecisionEvent): void{
@@ -445,7 +484,7 @@ function getOrInitializeKlerosCounter(): KlerosCounter {
     kc.drawnJurors = BigInt.fromI32(0)
     kc.tokenStaked = BigInt.fromI32(0)
     kc.totalETHFees = BigInt.fromI32(0)
-    kc.totalPNKredistributed = BigInt.fromI32(0)
+    kc.totalTokenRedistributed = BigInt.fromI32(0)
     kc.totalUSDthroughContract = BigInt.fromI32(0)
     kc.save()
   } else{
@@ -467,6 +506,8 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     court.disputesOngoing = BigInt.fromI32(0)
     court.activeJurors = BigInt.fromI32(0)
     court.tokenStaked = BigInt.fromI32(0)
+    court.totalETHFees = BigInt.fromI32(0)
+    court.totalTokenRedistributed = BigInt.fromI32(0)
     // get courtInputs from contract
     log.debug("getOrCreateCourt: Asking to the contract the parameters",[])
     let contract = KlerosLiquid.bind(KLContract)
@@ -561,6 +602,8 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
     juror.numberOfDisputesCreated = BigInt.fromI32(0)
     juror.numberOfDisputesAsJuror = BigInt.fromI32(0)
     juror.totalStaked = totalStake
+    juror.ethRewards = BigInt.fromI32(0)
+    juror.tokenRewards = BigInt.fromI32(0)
     if (courtID != null){
       let court = getOrCreateCourt(courtID!, KLContract)
       juror.subcourtsIDs = [court.id]
