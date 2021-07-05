@@ -56,3 +56,6 @@ typings/
 build/
 
 .idea/*
+
+# automatic generated files
+generated/
