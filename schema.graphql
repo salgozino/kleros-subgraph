@@ -47,7 +47,11 @@ type Court @entity {
   "Number of jurors to jump to parent court"
   jurorsForCourtJump: BigInt!
   "Time perids of this court"
-  timePeriods: [BigInt!]!
+  timePeriods: [BigInt!]!,
+  "Total ETH distributed in fees"
+  totalETHFees: BigInt!,
+  "tokens transfered from incoherent jurors to coherent juros"
+  totalTokenRedistributed: BigInt!,
 }
 
 type KlerosCounter @entity {
@@ -77,8 +81,8 @@ type KlerosCounter @entity {
   tokenStaked: BigInt!,
   "Total ETH distributed in fees"
   totalETHFees: BigInt!,
-  "Total PNK redistributed within jurors"
-  totalPNKredistributed: BigInt!,
+  "Total Token (PNK) redistributed within jurors (from incoherent to coherent)"
+  totalTokenRedistributed: BigInt!,
   "Total USD passed throug the contract in deposit and jurors fees"
   totalUSDthroughContract: BigInt!
 }
@@ -112,6 +116,10 @@ type Juror @entity {
   numberOfDisputesCreated: BigInt!,
   "All the votes of this juror"
   votes: [Vote!] @derivedFrom(field:"address")
+  "Amount of ETH rewarded as juror (+ it's gain, - it's loss)"
+  ethRewards: BigInt!
+  "Amount of Token (PNK) rewarded as juror (+ it's gain, - it's loss)"
+  tokenRewards: BigInt!
 }
 
 type CourtStake @entity {
@@ -219,10 +227,20 @@ type Draw @entity {
 }
 
 type TokenAndETHShift @entity {
+  "tx_hash-log_index"
   id: ID!,
+  "Dispute id related to the event"
   disputeId: BigInt!,
+  "Amount of tokens redistributed in the event"
   tokenAmount: BigInt!,
-  ETHAmount: BigInt!
+  "Amount of ETH redistributed in the event"
+  ETHAmount: BigInt!,
+  "Address of the wallet involved"
+  address: Bytes!,
+  "block number"
+  blockNumber: BigInt!,
+  "timestamp of the tx"
+  timestamp: BigInt!
 }
 
 ## PolicyUpdate entities
