@@ -67,6 +67,8 @@ type KlerosCounter @entity {
   closedDisputes: BigInt!,
   "Number of Disputes in evidence period"
   evidencePhaseDisputes: BigInt!,
+  "Number of Disputes in commit period"
+  commitPhaseDisputes: BigInt!,
   "Number of Disputes in voting period"
   votingPhaseDisputes: BigInt!,
   "Number of Disputes in appeal period"
@@ -195,7 +197,7 @@ type Vote @entity {
   voteID: BigInt!,
   "Address who was selected to vote"
   address: Juror!,
-  "Choice selected"
+  "Choice selected, null if has not voted or revelead the vote"
   choice: BigInt,
   "Boolean to indicate if the vote was casted. If not, the choice 0 indicates pending"
   voted: Boolean!,
@@ -203,6 +205,8 @@ type Vote @entity {
   salt: BigInt,
   "timestamp of the vote casted"
   timestamp: BigInt,
+  "commit hash, if hiddenVote in court is activated"
+  commit: Bytes
 }
 
 type NewPeriod @entity {

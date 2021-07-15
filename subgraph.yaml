@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: KlerosLiquid
-    network: mainnet
+    network: xdai
     source:
-      address: "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069"
+      address: "0x9C1dA9A04925bDfDedf0f6421bC7EEa8305F9002"
       abi: KlerosLiquid
-      startBlock: 7303699
+      startBlock: 16895601
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -37,6 +37,8 @@ dataSources:
         - event: AppealDecision(indexed uint256,indexed address)
           handler: handleAppealDecision
       callHandlers:
+        - function: castCommit(uint256,uint256[],bytes32)
+          handler: handleCastCommit
         - function: castVote(uint256,uint256[],uint256,uint256)
           handler: handleCastVote
         - function: executeRuling(uint256)
@@ -54,11 +56,11 @@ dataSources:
       file: ./src/KlerosLiquidMappings.ts
   - kind: ethereum/contract
     name: PolicyRegistry
-    network: mainnet
+    network: xdai
     source:
-      address: "0xCf1f07713d5193FaE5c1653C9f61953D048BECe4"
+      address: "0x9d494768936b6bDaabc46733b8D53A937A6c6D7e"
       abi: PolicyRegistry
-      startBlock: 10175793
+      startBlock: 16895601
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4

@@ -5,6 +5,7 @@ import {
   NewPeriod as NewPeriodEvent,
   TokenAndETHShift as TokenAndETHShiftEvent,
   AppealDecision as AppealDecisionEvent,
+  CastCommitCall,
   CastVoteCall,
   KlerosLiquid, 
   CreateSubcourtCall,
@@ -154,8 +155,8 @@ export function handleDraw(event: DrawEvent): void {
   voteEntity.dispute = dispute.id
   voteEntity.round = round.id
   voteEntity.voteID = voteID
-  // define choice 0 and not voted
-  voteEntity.choice = BigInt.fromI32(0)
+  // Define as null because the vote was not emmited yet
+  voteEntity.choice = null
   voteEntity.voted = false
   voteEntity.save()
   log.debug("handleDraw: vote entity stored",[])
@@ -188,6 +189,36 @@ export function handleDraw(event: DrawEvent): void {
   }
 
   
+}
+
+export function handleCastCommit(call: CastCommitCall): void {
+  let disputeID = call.inputs._disputeID
+  let voteIDs = call.inputs._voteIDs
+  let commit = call.inputs._commit
+  log.debug("handleCastVote: Casting vote from dispute {}", [disputeID.toString()])
+  let dispute = Dispute.load(disputeID.toString())
+  if (dispute == null){
+    log.error("handleCastVote: Error trying to load the dispute with id {}. The vote will not be stored", [disputeID.toString()])
+    return
+  }
+  let roundNum = getLastRound(disputeID)
+  
+  // update votes
+  for (let i = 0; i < voteIDs.length; i++) {
+    let id = getVoteId(disputeID, roundNum, voteIDs[i])
+    log.debug("handleCastVote: Storing the vote {}",[id])
+    let vote = Vote.load(id)
+    if (vote == null){
+      log.error("handleCastVote: Error trying to load the vote with id {}. The vote will not be stored", [id])
+    }
+    else{
+      vote.voted = true
+      vote.timestamp = call.block.timestamp
+      vote.commit = commit
+      vote.save()
+    }
+  } 
+  dispute.save()
 }
 
 export function handleCastVote(call: CastVoteCall): void {
@@ -240,6 +271,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     log.error("handleNewPeriod: Error trying to load the dispute with id {}. The new period will not be stored", [disputeID.toString()])
     return
   }
+  let oldPeriod = dispute.period
   dispute.period = getPeriodString(event.params._period)
   let kc = getOrInitializeKlerosCounter()
   if (event.params._period == 4) {
@@ -263,13 +295,23 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
   } else if (event.params._period==2){
-    log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for evidencePhase disputes", [])
-    // moving to voting phase (from the evidence phase)
+    if (oldPeriod == 'commit'){
+      log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for commitPhase disputes", [])
+      // moving to voting phase (from the commit phase)
+      kc.commitPhaseDisputes = kc.commitPhaseDisputes.minus(BigInt.fromI32(1))
+      kc.save()
+    }else{
+      log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for evidencePhase disputes", [])
+      // moving to voting phase (from the evidence phase)
+      kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
+    }
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
-    kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
   } else {
-    log.error("handleNewPeriod: new period of 1 (commit)!, I'm doing nothing", [])
+    log.debug("handleNewPeriod: Updating KC parameters in period 1!. +1 for commitPhase disputes, -1 for evidencePhaseDisputes", [])
+    kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
+    kc.commitPhaseDisputes = kc.commitPhaseDisputes.plus(BigInt.fromI32(1))
+    kc.save()
   }
   dispute.lastPeriodChange = event.block.timestamp
   // update current rulling
@@ -477,6 +519,7 @@ function getOrInitializeKlerosCounter(): KlerosCounter {
     kc.openDisputes = BigInt.fromI32(0),
     kc.closedDisputes = BigInt.fromI32(0),
     kc.evidencePhaseDisputes = BigInt.fromI32(0),
+    kc.commitPhaseDisputes = BigInt.fromI32(0),
     kc.votingPhaseDisputes = BigInt.fromI32(0),
     kc.appealPhaseDisputes = BigInt.fromI32(0),
     kc.activeJurors = BigInt.fromI32(0),
