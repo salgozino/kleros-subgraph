@@ -5,9 +5,9 @@
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard",
-    "create-local": "graph create --node http://localhost:8020/ salgozino/klerosboard",
-    "remove-local": "graph remove --node http://localhost:8020/ salgozino/klerosboard",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 salgozino/klerosboard",
+    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
+    "prepare:xdai": "mustache config/xdai.json subgraph.template.yaml > subgraph.yaml",
+    "deploy-xdai": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard-xdai",
     "test": "mocha -r ts-node/register 'tests/*.ts'"
   },
   "dependencies": {
@@ -25,6 +25,7 @@
     "babel-register": "^6.26.0",
     "chai": "^4.3.4",
     "mocha": "^9.0.1",
-    "ts-node": "^10.0.0"
+    "ts-node": "^10.0.0",
+    "mustache": "^3.1.0"
   }
 }
