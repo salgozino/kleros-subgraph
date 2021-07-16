@@ -145,7 +145,7 @@ Each vote has it's own entity
 
 [x] disputes as juror
 
-[!] Number of disputes as juror
+[x] Number of disputes as juror
 
 [x] disputes created
 
