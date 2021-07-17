@@ -365,6 +365,11 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
   }
   court.save()
 
+  // add the eth reward to the arbitrable 
+  let arbitrble = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
+  arbitrble.ethFees = arbitrble.ethFees.plus(event.params._ETHAmount)
+  arbitrble.save()
+
 }
 
 export function handleAppealDecision(event: AppealDecisionEvent): void{
