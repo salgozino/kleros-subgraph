@@ -27,7 +27,8 @@ import {
   KlerosCounter,
   Juror,
   CourtStake,
-  TokenAndETHShift
+  TokenAndETHShift,
+  Arbitrable,
 } from "../generated/schema"
 import {
   log,
@@ -74,9 +75,14 @@ export function handleStakeSet(event: StakeSetEvent): void {
 export function handleDisputeCreation(event: DisputeCreationEvent): void {
   log.debug("handleDisputeCreation: Creating a new dispute with id {}", [event.params._disputeID.toString()])
   let dispute = new Dispute(event.params._disputeID.toString())
+  let arbitrable = getOrCreateArbitrable(event.params._arbitrable)
   dispute.disputeID = event.params._disputeID
-  dispute.arbitrable = event.params._arbitrable
+  dispute.arbitrable = arbitrable.id
   dispute.txid = event.transaction.hash
+
+  // add number of disputes in arbitrable
+  arbitrable.numberOfDisputes = arbitrable.numberOfDisputes.plus(BigInt.fromI32(1))
+  arbitrable.save()
 
   // log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
   let contract = KlerosLiquid.bind(event.address)
@@ -524,11 +530,12 @@ function getOrInitializeKlerosCounter(): KlerosCounter {
     kc.appealPhaseDisputes = BigInt.fromI32(0),
     kc.activeJurors = BigInt.fromI32(0),
     kc.inactiveJurors = BigInt.fromI32(0),
-    kc.drawnJurors = BigInt.fromI32(0)
-    kc.tokenStaked = BigInt.fromI32(0)
-    kc.totalETHFees = BigInt.fromI32(0)
-    kc.totalTokenRedistributed = BigInt.fromI32(0)
-    kc.totalUSDthroughContract = BigInt.fromI32(0)
+    kc.drawnJurors = BigInt.fromI32(0),
+    kc.numberOfArbitrables = BigInt.fromI32(0),
+    kc.tokenStaked = BigInt.fromI32(0),
+    kc.totalETHFees = BigInt.fromI32(0),
+    kc.totalTokenRedistributed = BigInt.fromI32(0),
+    kc.totalUSDthroughContract = BigInt.fromI32(0),
     kc.save()
   } else{
     log.debug("getOrInitializeKlerosCounter: counters loaded",[])
@@ -877,4 +884,22 @@ function updateKCDueToStake(oldStake:BigInt, newStake:BigInt, jurorStatus:number
   } 
   kc.tokenStaked = kc.tokenStaked.plus(newStake).minus(oldStake)
   kc.save()
+}
+
+function getOrCreateArbitrable(address:Address): Arbitrable {
+  let id = address.toHexString()
+  let arbitrable = Arbitrable.load(id)
+  if (arbitrable==null){
+    log.debug("getOrCreateArbitrable: Creating a new arbitrable with address {}",[id])
+    arbitrable = new Arbitrable(id)
+    arbitrable.ethFees = BigInt.fromI32(0)
+    arbitrable.numberOfDisputes = BigInt.fromI32(0)
+    arbitrable.save()
+
+    // add 1 to the arbitrables count
+    let kc = getOrInitializeKlerosCounter()
+    kc.numberOfArbitrables = kc.numberOfArbitrables.plus(BigInt.fromI32(1))
+    kc.save()
+  }
+  return arbitrable!
 }
