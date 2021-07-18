@@ -81,7 +81,9 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.txid = event.transaction.hash
 
   // add number of disputes in arbitrable
-  arbitrable.numberOfDisputes = arbitrable.numberOfDisputes.plus(BigInt.fromI32(1))
+  arbitrable.disputesCount = arbitrable.disputesCount.plus(BigInt.fromI32(1))
+  arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.plus(BigInt.fromI32(1))
+  arbitrable.openDisputes = arbitrable.openDisputes.plus(BigInt.fromI32(1))
   arbitrable.save()
 
   // log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
@@ -279,6 +281,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   }
   let oldPeriod = dispute.period
   dispute.period = getPeriodString(event.params._period)
+  let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
   let kc = getOrInitializeKlerosCounter()
   if (event.params._period == 4) {
     // executing rulling
@@ -294,30 +297,45 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     kc.closedDisputes = kc.closedDisputes.plus(BigInt.fromI32(1))
     kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
+    // update arbitrable count
+    arbitrable.openDisputes = arbitrable.openDisputes.minus(BigInt.fromI32(1))
+    arbitrable.closedDisputes = arbitrable.closedDisputes.plus(BigInt.fromI32(1))
+    arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
+    arbitrable.save()
   } else if (event.params._period==3){
     // moving to appeal phase
     log.debug("handleNewPeriod: Updating KC parameters in period 3. +1 for appealPhase, -1 for votingPhase", [])
     kc.appealPhaseDisputes = kc.appealPhaseDisputes.plus(BigInt.fromI32(1))
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
     kc.save()
+    // update arbitrable count
+    arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.plus(BigInt.fromI32(1))
+    arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.minus(BigInt.fromI32(1))
+    arbitrable.save()
   } else if (event.params._period==2){
     if (oldPeriod == 'commit'){
       log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for commitPhase disputes", [])
       // moving to voting phase (from the commit phase)
       kc.commitPhaseDisputes = kc.commitPhaseDisputes.minus(BigInt.fromI32(1))
-      kc.save()
+      arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.minus(BigInt.fromI32(1))
     }else{
       log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for evidencePhase disputes", [])
       // moving to voting phase (from the evidence phase)
       kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
+      arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.minus(BigInt.fromI32(1))
     }
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
+    arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.plus(BigInt.fromI32(1))
     kc.save()
+    arbitrable.save()
   } else {
     log.debug("handleNewPeriod: Updating KC parameters in period 1!. +1 for commitPhase disputes, -1 for evidencePhaseDisputes", [])
     kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
     kc.commitPhaseDisputes = kc.commitPhaseDisputes.plus(BigInt.fromI32(1))
+    arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.minus(BigInt.fromI32(1))
+    arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.plus(BigInt.fromI32(1))
     kc.save()
+    arbitrable.save()
   }
   dispute.lastPeriodChange = event.block.timestamp
   // update current rulling
@@ -898,7 +916,13 @@ function getOrCreateArbitrable(address:Address): Arbitrable {
     log.debug("getOrCreateArbitrable: Creating a new arbitrable with address {}",[id])
     arbitrable = new Arbitrable(id)
     arbitrable.ethFees = BigInt.fromI32(0)
-    arbitrable.numberOfDisputes = BigInt.fromI32(0)
+    arbitrable.disputesCount = BigInt.fromI32(0)
+    arbitrable.openDisputes = BigInt.fromI32(0)
+    arbitrable.closedDisputes = BigInt.fromI32(0)
+    arbitrable.evidencePhaseDisputes = BigInt.fromI32(0)
+    arbitrable.commitPhaseDisputes = BigInt.fromI32(0)
+    arbitrable.votingPhaseDisputes = BigInt.fromI32(0)
+    arbitrable.appealPhaseDisputes = BigInt.fromI32(0)
     arbitrable.save()
 
     // add 1 to the arbitrables count
