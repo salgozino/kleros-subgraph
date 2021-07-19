@@ -347,7 +347,8 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
   let entity = new TokenAndETHShift(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
     )
-  entity.disputeId = event.params._disputeID
+  let dispute = Dispute.load(event.params._disputeID.toString())
+  entity.disputeId = dispute.id
   entity.tokenAmount = event.params._tokenAmount
   entity.ETHAmount = event.params._ETHAmount
   entity.address = event.params._address
@@ -370,11 +371,6 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
   kc.save()
   
   // saving in court entity
-  let dispute = Dispute.load(event.params._disputeID.toString())
-  if (dispute == null){
-    log.error("handleTokenAndETHShift: Dispute {} could not be found, eth and token shift not stored in the corresponding court", [event.params._disputeID.toString()])
-    return
-  }
   let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
   court.totalETHFees = court.totalETHFees.plus(event.params._ETHAmount)
   if (event.params._tokenAmount.gt(BigInt.fromI32(0))){
