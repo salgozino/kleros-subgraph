@@ -196,6 +196,8 @@ type Dispute @entity {
   metaevidente: String
   "Transaction hash where this dispute was created"
   txid: Bytes!
+  "Transfers made due to this dispute"
+  TokenAndETHShifts: [TokenAndETHShift!]! @derivedFrom(field:"disputeId")
 }
 
 type Round @entity {
@@ -259,7 +261,7 @@ type TokenAndETHShift @entity {
   "tx_hash-log_index"
   id: ID!,
   "Dispute id related to the event"
-  disputeId: BigInt!,
+  disputeId: Dispute!,
   "Amount of tokens redistributed in the event"
   tokenAmount: BigInt!,
   "Amount of ETH redistributed in the event"
