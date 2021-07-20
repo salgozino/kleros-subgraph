@@ -354,7 +354,8 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
   entity.address = event.params._address
   entity.blockNumber = event.block.number
   entity.timestamp  = event.block.timestamp
-
+  entity.save()
+  
   // saving in juror entity
   let juror = getOrCreateJuror(event.params._address, null, BigInt.fromI32(0), event.address)
   juror.ethRewards = juror.ethRewards.plus(event.params._ETHAmount)
