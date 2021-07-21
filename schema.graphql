@@ -111,7 +111,7 @@ type Juror @entity {
   "Total staked across all the courts"
   totalStaked: BigInt!,
   "List of disputes where has at least one vote"
-  disputesAsJuror: [Dispute!] @derivedFrom(field:"jurorsInvolved"),
+  disputesAsJuror: [Dispute!]! @derivedFrom(field:"jurorsInvolved"),
   "Number of disputes that has been participating as juror"
   numberOfDisputesAsJuror: BigInt!,
   "List of disputes raised by this wallet"
@@ -191,7 +191,7 @@ type Dispute @entity {
   "Current choice ruled"
   currentRulling: BigInt,
   "List of jurors (wallets) involved in the dispute"
-  jurorsInvolved: [Juror!],
+  jurorsInvolved: [Juror!]!,
   "Metaevidence of the dispute. Question and options"
   metaevidente: String
   "Transaction hash where this dispute was created"

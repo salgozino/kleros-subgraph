@@ -104,6 +104,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.period = getPeriodString(disputeData.value3)
   dispute.startTime = event.block.timestamp
   dispute.ruled = disputeData.value7
+  dispute.jurorsInvolved = []
   
   log.debug("handleDisputeCreation: saving dispute {} entity",[event.params._disputeID.toString()])
   dispute.save()
@@ -195,8 +196,12 @@ export function handleDraw(event: DrawEvent): void {
       juror.save()
     }
   }
-
-  
+  // add jurors involved in the dispute
+  let jurors_involved = dispute.jurorsInvolved
+  jurors_involved.push(juror.id)
+  dispute.jurorsInvolved = jurors_involved
+  log.info('handleDraw: Adding juror {} to dispute {}', [juror.id, dispute.id])
+  dispute.save()
 }
 
 export function handleCastCommit(call: CastCommitCall): void {
@@ -296,22 +301,18 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     kc.openDisputes = kc.openDisputes.minus(BigInt.fromI32(1))
     kc.closedDisputes = kc.closedDisputes.plus(BigInt.fromI32(1))
     kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
-    kc.save()
     // update arbitrable count
     arbitrable.openDisputes = arbitrable.openDisputes.minus(BigInt.fromI32(1))
     arbitrable.closedDisputes = arbitrable.closedDisputes.plus(BigInt.fromI32(1))
     arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
-    arbitrable.save()
   } else if (event.params._period==3){
     // moving to appeal phase
     log.debug("handleNewPeriod: Updating KC parameters in period 3. +1 for appealPhase, -1 for votingPhase", [])
     kc.appealPhaseDisputes = kc.appealPhaseDisputes.plus(BigInt.fromI32(1))
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
-    kc.save()
     // update arbitrable count
     arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.plus(BigInt.fromI32(1))
     arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.minus(BigInt.fromI32(1))
-    arbitrable.save()
   } else if (event.params._period==2){
     if (oldPeriod == 'commit'){
       log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for commitPhase disputes", [])
@@ -326,17 +327,15 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     }
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
     arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.plus(BigInt.fromI32(1))
-    kc.save()
-    arbitrable.save()
   } else {
     log.debug("handleNewPeriod: Updating KC parameters in period 1!. +1 for commitPhase disputes, -1 for evidencePhaseDisputes", [])
     kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
     kc.commitPhaseDisputes = kc.commitPhaseDisputes.plus(BigInt.fromI32(1))
     arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.minus(BigInt.fromI32(1))
     arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.plus(BigInt.fromI32(1))
-    kc.save()
-    arbitrable.save()
   }
+  kc.save()
+  arbitrable.save()
   dispute.lastPeriodChange = event.block.timestamp
   // update current rulling
   dispute.currentRulling = getCurrentRulling(disputeID, event.address)
