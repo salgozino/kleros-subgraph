@@ -124,6 +124,8 @@ type Juror @entity {
   ethRewards: BigInt!
   "Amount of Token (PNK) rewarded as juror (+ it's gain, - it's loss)"
   tokenRewards: BigInt!
+  "Transfers of the rewards for this wallet"
+  tokenAndETHShifts: [TokenAndETHShift]! @derivedFrom(field:"address")
 }
 
 type CourtStake @entity {
@@ -266,8 +268,8 @@ type TokenAndETHShift @entity {
   tokenAmount: BigInt!,
   "Amount of ETH redistributed in the event"
   ETHAmount: BigInt!,
-  "Address of the wallet involved"
-  address: Bytes!,
+  "wallet of the Juror involved"
+  address: Juror!,
   "block number"
   blockNumber: BigInt!,
   "timestamp of the tx"

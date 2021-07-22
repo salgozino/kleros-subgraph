@@ -314,16 +314,23 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.plus(BigInt.fromI32(1))
     arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.minus(BigInt.fromI32(1))
   } else if (event.params._period==2){
+    //
     if (oldPeriod == 'commit'){
       log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for commitPhase disputes", [])
       // moving to voting phase (from the commit phase)
       kc.commitPhaseDisputes = kc.commitPhaseDisputes.minus(BigInt.fromI32(1))
       arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.minus(BigInt.fromI32(1))
-    }else{
+    }else if (oldPeriod == 'evidence'){
       log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for evidencePhase disputes", [])
       // moving to voting phase (from the evidence phase)
       kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
       arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.minus(BigInt.fromI32(1))
+    } else if (oldPeriod == 'appeal') {
+      log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for appealPhase disputes", [])
+      kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
+      arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
+    } else{
+      log.error('handleNewPeriod: Wrong oldPeriod for the counters!. oldPeriod = {}', [oldPeriod])
     }
     kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
     arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.plus(BigInt.fromI32(1))
@@ -347,16 +354,16 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
     )
   let dispute = Dispute.load(event.params._disputeID.toString())
+  let juror = getOrCreateJuror(event.params._address, null, BigInt.fromI32(0), event.address)
   entity.disputeId = dispute.id
   entity.tokenAmount = event.params._tokenAmount
   entity.ETHAmount = event.params._ETHAmount
-  entity.address = event.params._address
+  entity.address = juror.id
   entity.blockNumber = event.block.number
   entity.timestamp  = event.block.timestamp
   entity.save()
   
   // saving in juror entity
-  let juror = getOrCreateJuror(event.params._address, null, BigInt.fromI32(0), event.address)
   juror.ethRewards = juror.ethRewards.plus(event.params._ETHAmount)
   juror.tokenRewards = juror.tokenRewards.plus(event.params._tokenAmount)
   juror.save()
