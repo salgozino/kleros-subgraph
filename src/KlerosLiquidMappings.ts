@@ -65,7 +65,7 @@ export function handleStakeSet(event: StakeSetEvent): void {
   entity.newTotalStake = event.params._newTotalStake
   entity.blocknumber = event.block.number
   entity.timestamp = event.block.timestamp
-  entity.gasCost = entity.gasCost.plus(event.transaction.gasUsed.times(event.transaction.gasPrice))
+  entity.gasCost = event.transaction.gasUsed.times(event.transaction.gasPrice)
   entity.save()
   log.info("handleStakeSet: stake set stored",[])
   
@@ -170,7 +170,14 @@ export function handleDraw(event: DrawEvent): void {
   // Define as null because the vote was not emmited yet
   voteEntity.choice = null
   voteEntity.voted = false
-  voteEntity.gasCost = BigInt.fromI32(0)
+  
+  voteEntity.commitGasUsed = BigInt.fromI32(0)
+  voteEntity.commitGasPrice = BigInt.fromI32(0)
+  voteEntity.commitGasCost = BigInt.fromI32(0)
+  voteEntity.castGasUsed = BigInt.fromI32(0)
+  voteEntity.castGasPrice = BigInt.fromI32(0)
+  voteEntity.castGasCost = BigInt.fromI32(0)
+  voteEntity.totalGasCost = BigInt.fromI32(0)
   voteEntity.save()
   log.debug("handleDraw: vote entity stored",[])
 
@@ -232,7 +239,10 @@ export function handleCastCommit(call: CastCommitCall): void {
       vote.voted = true
       vote.timestamp = call.block.timestamp
       vote.commit = commit
-      vote.gasCost = vote.gasCost.plus(call.transaction.gasUsed.times(call.transaction.gasPrice))
+      vote.commitGasUsed = call.transaction.gasUsed
+      vote.commitGasPrice = call.transaction.gasPrice
+      vote.commitGasCost = vote.commitGasCost.times(vote.commitGasPrice)
+      vote.totalGasCost = vote.totalGasCost.plus(vote.commitGasCost)
       vote.save()
     }
   } 
@@ -263,7 +273,10 @@ export function handleCastVote(call: CastVoteCall): void {
       vote.salt = call.inputs._salt
       vote.voted = true
       vote.timestamp = call.block.timestamp
-      vote.gasCost = vote.gasCost.plus(call.transaction.gasUsed.times(call.transaction.gasPrice))
+      vote.castGasUsed = call.transaction.gasUsed
+      vote.castGasPrice = call.transaction.gasPrice
+      vote.castGasCost = vote.castGasUsed.times(vote.castGasPrice)
+      vote.totalGasCost = vote.totalGasCost.plus(vote.castGasCost)
       vote.save()
     }
   } 

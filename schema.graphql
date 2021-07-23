@@ -239,8 +239,20 @@ type Vote @entity {
   timestamp: BigInt,
   "commit hash, if hiddenVote in court is activated"
   commit: Bytes
-  "Gas cost (price*units used) to commit and cast the vote"
-  gasCost: BigInt!
+  "gas units used for commit"
+  commitGasUsed: BigInt!
+  "gas price paid for commit"
+  commitGasPrice: BigInt!
+  "gas cost for commit (price*used)"
+  commitGasCost: BigInt!
+  "gas used for cast" 
+  castGasUsed: BigInt!
+  "gas price paid for cast"
+  castGasPrice: BigInt!
+  "gas cost for cast (price*used)"
+  castGasCost: BigInt!
+  "total gas cost commit+cast"
+  totalGasCost: BigInt
 }
 
 type NewPeriod @entity {
