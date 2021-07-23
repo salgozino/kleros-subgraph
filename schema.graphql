@@ -97,6 +97,9 @@ type StakeSet @entity {
   subcourtID: BigInt! # uint256
   stake: BigInt! # uint128
   newTotalStake: BigInt! # uint256
+  blocknumber: BigInt!
+  timestamp: BigInt!
+  gasCost: BigInt!
 }
 
 type Juror @entity {
@@ -236,6 +239,8 @@ type Vote @entity {
   timestamp: BigInt,
   "commit hash, if hiddenVote in court is activated"
   commit: Bytes
+  "Gas cost (price*units used) to commit and cast the vote"
+  gasCost: BigInt!
 }
 
 type NewPeriod @entity {

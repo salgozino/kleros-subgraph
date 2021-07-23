@@ -63,6 +63,9 @@ export function handleStakeSet(event: StakeSetEvent): void {
   entity.subcourtID = event.params._subcourtID
   entity.stake = event.params._stake
   entity.newTotalStake = event.params._newTotalStake
+  entity.blocknumber = event.block.number
+  entity.timestamp = event.block.timestamp
+  entity.gasCost = entity.gasCost.plus(event.transaction.gasUsed.times(event.transaction.gasPrice))
   entity.save()
   log.info("handleStakeSet: stake set stored",[])
   
@@ -167,6 +170,7 @@ export function handleDraw(event: DrawEvent): void {
   // Define as null because the vote was not emmited yet
   voteEntity.choice = null
   voteEntity.voted = false
+  voteEntity.gasCost = BigInt.fromI32(0)
   voteEntity.save()
   log.debug("handleDraw: vote entity stored",[])
 
@@ -228,6 +232,7 @@ export function handleCastCommit(call: CastCommitCall): void {
       vote.voted = true
       vote.timestamp = call.block.timestamp
       vote.commit = commit
+      vote.gasCost = vote.gasCost.plus(call.transaction.gasUsed.times(call.transaction.gasPrice))
       vote.save()
     }
   } 
@@ -258,6 +263,7 @@ export function handleCastVote(call: CastVoteCall): void {
       vote.salt = call.inputs._salt
       vote.voted = true
       vote.timestamp = call.block.timestamp
+      vote.gasCost = vote.gasCost.plus(call.transaction.gasUsed.times(call.transaction.gasPrice))
       vote.save()
     }
   } 
