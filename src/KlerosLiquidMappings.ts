@@ -241,7 +241,7 @@ export function handleCastCommit(call: CastCommitCall): void {
       vote.commit = commit
       vote.commitGasUsed = call.transaction.gasUsed
       vote.commitGasPrice = call.transaction.gasPrice
-      vote.commitGasCost = vote.commitGasCost.times(vote.commitGasPrice)
+      vote.commitGasCost = vote.commitGasUsed.times(vote.commitGasPrice)
       vote.totalGasCost = vote.totalGasCost.plus(vote.commitGasCost)
       vote.save()
     }

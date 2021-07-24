@@ -252,7 +252,7 @@ type Vote @entity {
   "gas cost for cast (price*used)"
   castGasCost: BigInt!
   "total gas cost commit+cast"
-  totalGasCost: BigInt
+  totalGasCost: BigInt!
 }
 
 type NewPeriod @entity {
