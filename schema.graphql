@@ -259,6 +259,7 @@ type NewPeriod @entity {
   id: ID!
   disputeId: BigInt!,
   newPeriod: Period!
+  blockNumber: BigInt!,
 }
 
 type Draw @entity {
