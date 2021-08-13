@@ -67,7 +67,7 @@ export function handleStakeSet(event: StakeSetEvent): void {
   entity.timestamp = event.block.timestamp
   entity.gasCost = event.transaction.gasUsed.times(event.transaction.gasPrice)
   entity.save()
-  log.info("handleStakeSet: stake set stored",[])
+  log.debug("handleStakeSet: stake set stored",[])
   
   // update the juror entity and the courtStake
   updateJurorStake(event.params._address, event.params._subcourtID, event.params._stake,
@@ -84,6 +84,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.txid = event.transaction.hash
 
   // add number of disputes in arbitrable
+  log.debug("handleDisputeCreation: Adding +1 in dispute counters for arbitrable {}", [arbitrable.id])
   arbitrable.disputesCount = arbitrable.disputesCount.plus(BigInt.fromI32(1))
   arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   arbitrable.openDisputes = arbitrable.openDisputes.plus(BigInt.fromI32(1))
@@ -143,7 +144,7 @@ export function handleDraw(event: DrawEvent): void {
   let voteID = event.params._voteID
   
   let drawID = getVoteId(disputeID, roundNumber, voteID)
-  log.info("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}. drawID={}",
+  log.debug("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}. drawID={}",
      [disputeID.toString(), voteID.toString(), roundNumber.toString(), drawID])
   // create draw Entity
   let drawEntity = new Draw(drawID)
@@ -153,9 +154,9 @@ export function handleDraw(event: DrawEvent): void {
   drawEntity.voteId = voteID
   drawEntity.timestamp = event.block.timestamp
   drawEntity.save()
-  log.info("handleDraw: drawEntity stored",[])
+  log.debug("handleDraw: drawEntity stored",[])
   // create Vote entity
-  log.info("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
+  log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
   let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())
   let dispute = Dispute.load(disputeID.toString())
   log.debug("handleDraw: loaded round id is {}", [round.id])
@@ -211,7 +212,7 @@ export function handleDraw(event: DrawEvent): void {
   let jurors_involved = dispute.jurorsInvolved
   jurors_involved.push(juror.id)
   dispute.jurorsInvolved = jurors_involved
-  log.info('handleDraw: Adding juror {} to dispute {}', [juror.id, dispute.id])
+  log.debug('handleDraw: Adding juror {} to dispute {}', [juror.id, dispute.id])
   dispute.save()
 }
 
@@ -296,72 +297,111 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   period.save()
 
   // update the dispute period
-  // log.debug("handleNewPeriod: Updating the dispute {} information", [disputeID.toString()])
-  
+
   let dispute = Dispute.load(disputeID.toString())
   if (dispute == null){
     log.error("handleNewPeriod: Error trying to load the dispute with id {}. The new period will not be stored", [disputeID.toString()])
     return
   }
+  
+  // update counters.
+  // avoid period == 0, because was handled in disputeCreation, this is just in xDAI, in mainnet the
+  // newPeriod event it's not emmited when the dispute it's created.
+  // The same for appealing. The counters are handled in the AppealDecision Event because in mainnet
+  // the event NewPeriod it's not emmited
   let oldPeriod = dispute.period
-  dispute.period = getPeriodString(event.params._period)
-  let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
-  let kc = getOrInitializeKlerosCounter()
-  if (event.params._period == 4) {
-    // executing rulling
-    dispute.ruled = true
-    let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
-    log.debug("handleNewPeriod: Period 4: updating disputes ongoing and closed in court {} entity", [court.id])
-    court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
-    court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
-    court.save()
-    // update counters
-    log.debug("handleNewPeriod: Updating KC parameters in period 4. +1 for closed disputes, -1 for openDisputes and appealPhaseDisputes", [])
-    kc.openDisputes = kc.openDisputes.minus(BigInt.fromI32(1))
-    kc.closedDisputes = kc.closedDisputes.plus(BigInt.fromI32(1))
-    kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
-    // update arbitrable count
-    arbitrable.openDisputes = arbitrable.openDisputes.minus(BigInt.fromI32(1))
-    arbitrable.closedDisputes = arbitrable.closedDisputes.plus(BigInt.fromI32(1))
-    arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
-  } else if (event.params._period==3){
-    // moving to appeal phase
-    log.debug("handleNewPeriod: Updating KC parameters in period 3. +1 for appealPhase, -1 for votingPhase", [])
-    kc.appealPhaseDisputes = kc.appealPhaseDisputes.plus(BigInt.fromI32(1))
-    kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
-    // update arbitrable count
-    arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.plus(BigInt.fromI32(1))
-    arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.minus(BigInt.fromI32(1))
-  } else if (event.params._period==2){
-    //
-    if (oldPeriod == 'commit'){
-      log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for commitPhase disputes", [])
-      // moving to voting phase (from the commit phase)
-      kc.commitPhaseDisputes = kc.commitPhaseDisputes.minus(BigInt.fromI32(1))
-      arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.minus(BigInt.fromI32(1))
-    }else if (oldPeriod == 'evidence'){
-      log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for evidencePhase disputes", [])
-      // moving to voting phase (from the evidence phase)
+  if (event.params._period !== 0 || oldPeriod != getPeriodString(3)){
+    let kc = getOrInitializeKlerosCounter()
+    let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
+    // Update new period counters
+    if (event.params._period == 4) {
+      // executing rulling
+      dispute.ruled = true
+      let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
+      log.debug("handleNewPeriod: Period 4: updating disputes ongoing and closed in court {} entity", [court.id])
+      court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
+      court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
+      court.save()
+      // update counters
+      log.debug("handleNewPeriod: Updating KC parameters in period 4. +1 for closed disputes, -1 for openDisputes", [])
+      kc.openDisputes = kc.openDisputes.minus(BigInt.fromI32(1))
+      kc.closedDisputes = kc.closedDisputes.plus(BigInt.fromI32(1))
+      // update arbitrable count
+      arbitrable.openDisputes = arbitrable.openDisputes.minus(BigInt.fromI32(1))
+      arbitrable.closedDisputes = arbitrable.closedDisputes.plus(BigInt.fromI32(1))
+    } else if (event.params._period==3){
+      // moving to appeal phase
+      log.debug("handleNewPeriod: Updating KC parameters in period 3. +1 for appealPhase", [])
+      kc.appealPhaseDisputes = kc.appealPhaseDisputes.plus(BigInt.fromI32(1))
+      arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.plus(BigInt.fromI32(1))
+    } else if (event.params._period==2){
+      // moving to voting phase
+      log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votingPhase", [])
+      kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
+      arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.plus(BigInt.fromI32(1))
+    } else if (event.params._period==1) {
+      // moving to commit phase
+      log.debug("handleNewPeriod: Updating KC parameters in period 1!. +1 for commitPhase disputes", [])
+      kc.commitPhaseDisputes = kc.commitPhaseDisputes.plus(BigInt.fromI32(1))
+      arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.plus(BigInt.fromI32(1))
+    } else {
+      log.warning("handleNewPeriod: New period not handled for counters. Value {}", [dispute.period])
+    }
+    // Update old period counters
+    if (oldPeriod == getPeriodString(0)) {
+      // old period was Evidence
+      log.debug("handleNewPeriod: Updating KC parameters in old period evidence. Minus 1 for evidence", [])
       kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
       arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.minus(BigInt.fromI32(1))
-    } else if (oldPeriod == 'appeal') {
-      log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votinPhase disputes, -1 for appealPhase disputes", [])
+      if (kc.evidencePhaseDisputes.lt(BigInt.fromI32(0))) {
+        log.error("handleNewPeriod: KC evidence count < 0", [])
+      }
+      if (arbitrable.evidencePhaseDisputes.lt(BigInt.fromI32(0))) {
+        log.error("handleNewPeriod: Arbitrable {} evidence count < 0", [arbitrable.id])
+      }
+    } else if (oldPeriod == getPeriodString(1)){
+      // old period was commit
+      log.debug("handleNewPeriod: Updating KC parameters in old period commit. Minus 1 for commit", [])
+      kc.commitPhaseDisputes = kc.commitPhaseDisputes.minus(BigInt.fromI32(1))
+      arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.minus(BigInt.fromI32(1))
+      if (kc.commitPhaseDisputes.lt(BigInt.fromI32(0))) {
+        log.error("handleNewPeriod: KC commit count < 0", [])
+      }
+      if (arbitrable.commitPhaseDisputes.lt(BigInt.fromI32(0))) {
+        log.error("handleNewPeriod: Arbitrable {} commit count < 0", [arbitrable.id])
+      }
+    } else if (oldPeriod == getPeriodString(2)){
+      // oldPeriod was vote
+      log.debug("handleNewPeriod: Updating KC parameters in old period vote. Minus 1 for vote", [])
+      kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
+      arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.minus(BigInt.fromI32(1))
+      if (kc.votingPhaseDisputes.lt(BigInt.fromI32(0))) {
+        log.error("handleNewPeriod: KC vote count < 0", [])
+      }
+      if (arbitrable.votingPhaseDisputes.lt(BigInt.fromI32(0))) {
+        log.error("handleNewPeriod: Arbitrable {} vote count < 0", [arbitrable.id])
+      }
+    } else if (oldPeriod == getPeriodString(3)) {
+      // old period appeal
+      log.debug("handleNewPeriod: Updating KC parameters in old period appeal. Minus 1 for appeal", [])
       kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
       arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
+      if (kc.appealPhaseDisputes.lt(BigInt.fromI32(0))) {
+        log.error("handleNewPeriod: KC appeal count < 0", [])
+      }
+      if (arbitrable.appealPhaseDisputes.lt(BigInt.fromI32(0))) {
+        log.error("handleNewPeriod: Arbitrable {} appeal count < 0", [arbitrable.id])
+      }
     } else{
-      log.error('handleNewPeriod: Wrong oldPeriod for the counters!. oldPeriod = {}', [oldPeriod])
+      log.warning("handleNewPeriod: Old Period {} not handled.", [oldPeriod])
     }
-    kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
-    arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.plus(BigInt.fromI32(1))
+    kc.save()
+    arbitrable.save()
   } else {
-    log.debug("handleNewPeriod: Updating KC parameters in period 1!. +1 for commitPhase disputes, -1 for evidencePhaseDisputes", [])
-    kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
-    kc.commitPhaseDisputes = kc.commitPhaseDisputes.plus(BigInt.fromI32(1))
-    arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.minus(BigInt.fromI32(1))
-    arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.plus(BigInt.fromI32(1))
+    log.info("handleNewPeriod: Counter dissmiss because period it's equal to {} and old period it's {}", 
+      [getPeriodString(event.params._period), oldPeriod])
   }
-  kc.save()
-  arbitrable.save()
+  dispute.period = getPeriodString(event.params._period)
   dispute.lastPeriodChange = event.block.timestamp
   // update current rulling
   dispute.currentRulling = getCurrentRulling(disputeID, event.address)
@@ -415,7 +455,7 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
 export function handleAppealDecision(event: AppealDecisionEvent): void{
   // Event  raised when a dispute is appealed
   let disputeID = event.params._disputeID
-  log.info("handleAppealDecision: New Appeal Decision raised for the dispute {}", [disputeID.toString()])
+  log.debug("handleAppealDecision: New Appeal Decision raised for the dispute {}", [disputeID.toString()])
   let dispute = Dispute.load(disputeID.toString())
   if (dispute == null){
     log.error("handleAppealDecision: Error trying to load the dispute with id {}. The appeal will not be stored", [disputeID.toString()])
@@ -455,12 +495,16 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
     court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
     court.save()
   }
-  // Update KlerosCounters
+  // Update KlerosCounters and Arbitrable
   let kc = getOrInitializeKlerosCounter()
   log.debug("handleAppealDecision: Adding 1 in evidence phase disputes and -1 to appeal phase disputes in the KC",[])
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
   kc.save()
+  let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
+  arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.plus(BigInt.fromI32(1))
+  arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
+  arbitrable.save()
 }
 
 export function handleCreateSubcourt(call: CreateSubcourtCall): void {
