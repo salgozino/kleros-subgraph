@@ -53,6 +53,8 @@ dataSources:
           handler: handleChangeSubcourtJurorsForJump
         - function: changeSubcourtTimesPerPeriod(uint96,uint256[4])
           handler: handleChangeSubcourtTimesPerPeriod
+        - function: createSubcourt(uint96,bool,uint256,uint256,uint256,uint256,uint256[4],uint256)
+          handler: handleCreateSubcourt
       file: ./src/KlerosLiquidMappings.ts
   - kind: ethereum/contract
     name: PolicyRegistry
