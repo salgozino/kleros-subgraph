@@ -83,7 +83,13 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.arbitrable = arbitrable.id
   dispute.txid = event.transaction.hash
 
-  
+  // add number of disputes in arbitrable
+  log.debug("handleDisputeCreation: Adding +1 in dispute counters for arbitrable {}", [arbitrable.id])
+  arbitrable.disputesCount = arbitrable.disputesCount.plus(BigInt.fromI32(1))
+  arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.plus(BigInt.fromI32(1))
+  arbitrable.openDisputes = arbitrable.openDisputes.plus(BigInt.fromI32(1))
+  arbitrable.save()
+
   // log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(event.params._disputeID)
@@ -503,7 +509,6 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
     court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
     court.save()
   }
-  
   // Update KlerosCounters and Arbitrable
   let kc = getOrInitializeKlerosCounter()
   log.debug("handleAppealDecision: Adding 1 in evidence phase disputes and -1 to appeal phase disputes in the KC and arbitrable",[])
