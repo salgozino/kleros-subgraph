@@ -309,7 +309,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   // The same when an appeal is raised. The counters are handled in the AppealDecision Event because in mainnet
   // the event NewPeriod it's not emmited (oldPeriod = Appeal & newPeriod != execution)
   let oldPeriod = dispute.period
-  if ( (event.params._period !== 0) || !(oldPeriod == getPeriodString(3) && event.params._period !== 4)){
+  if ( (event.params._period !== 0) && !(oldPeriod == getPeriodString(3) && event.params._period !== 4)){
     let kc = getOrInitializeKlerosCounter()
     let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
     // Update new period counters
@@ -509,6 +509,7 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
   kc.save()
+  
   let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
   arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
