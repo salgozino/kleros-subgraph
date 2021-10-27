@@ -83,19 +83,12 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.arbitrable = arbitrable.id
   dispute.txid = event.transaction.hash
 
-  // add number of disputes in arbitrable
-  log.debug("handleDisputeCreation: Adding +1 in dispute counters for arbitrable {}", [arbitrable.id])
-  arbitrable.disputesCount = arbitrable.disputesCount.plus(BigInt.fromI32(1))
-  arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.plus(BigInt.fromI32(1))
-  arbitrable.openDisputes = arbitrable.openDisputes.plus(BigInt.fromI32(1))
-  arbitrable.save()
-
   // log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(event.params._disputeID)
   let court = getOrCreateCourt(disputeData.value0, event.address)
   // define creator
-  // using the same naming for juror and creator as entities isn't the best practive
+  // using the same naming for juror and creator as entities isn't the best practice
   let creator = getOrCreateJuror(event.transaction.from, null, BigInt.fromI32(0), event.address)
   dispute.creator = creator.id
   // sum +1 in the counter of the disputes created by this user
@@ -109,7 +102,6 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.startTime = event.block.timestamp
   dispute.ruled = disputeData.value7
   dispute.jurorsInvolved = []
-  
   log.debug("handleDisputeCreation: saving dispute {} entity",[event.params._disputeID.toString()])
   dispute.save()
   
@@ -305,7 +297,6 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   period.save()
 
   // update the dispute period
-
   let dispute = Dispute.load(disputeID.toString())
   if (dispute == null){
     log.error("handleNewPeriod: Error trying to load the dispute with id {}. The new period will not be stored", [disputeID.toString()])
@@ -318,7 +309,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   // The same when an appeal is raised. The counters are handled in the AppealDecision Event because in mainnet
   // the event NewPeriod it's not emmited (oldPeriod = Appeal & newPeriod != execution)
   let oldPeriod = dispute.period
-  if ( (event.params._period !== 0) || !(oldPeriod == getPeriodString(3) && event.params._period !== 4)){
+  if ( (event.params._period !== 0) && !(oldPeriod == getPeriodString(3) && event.params._period !== 4)){
     let kc = getOrInitializeKlerosCounter()
     let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
     // Update new period counters
@@ -330,6 +321,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
       court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
       court.save()
+      
       // update counters
       log.debug("handleNewPeriod: Updating KC parameters in period 4. +1 for closed disputes, -1 for openDisputes", [])
       kc.openDisputes = kc.openDisputes.minus(BigInt.fromI32(1))
@@ -353,6 +345,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       kc.commitPhaseDisputes = kc.commitPhaseDisputes.plus(BigInt.fromI32(1))
       arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.plus(BigInt.fromI32(1))
     } else {
+      // This should never be met...
       log.warning("handleNewPeriod: New period not handled for counters. Value {}", [dispute.period])
     }
     // Update old period counters
@@ -509,12 +502,14 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
     court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
     court.save()
   }
+
   // Update KlerosCounters and Arbitrable
   let kc = getOrInitializeKlerosCounter()
   log.debug("handleAppealDecision: Adding 1 in evidence phase disputes and -1 to appeal phase disputes in the KC and arbitrable",[])
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
   kc.save()
+  
   let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
   arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
