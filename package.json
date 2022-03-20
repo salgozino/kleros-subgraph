@@ -22,10 +22,13 @@
   "devDependencies": {
     "@types/chai": "^4.2.19",
     "@types/mocha": "^8.2.2",
+    "@typescript-eslint/eslint-plugin": "^5.15.0",
+    "@typescript-eslint/parser": "^5.15.0",
     "babel-register": "^6.26.0",
     "chai": "^4.3.4",
+    "eslint": "^8.11.0",
     "mocha": "^9.0.1",
-    "ts-node": "^10.0.0",
-    "mustache": "^3.1.0"
+    "mustache": "^3.1.0",
+    "ts-node": "^10.0.0"
   }
 }
