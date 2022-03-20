@@ -48,7 +48,6 @@ enum Period {
   execution
 }
 
-
 export function handleStakeSet(event: StakeSetEvent): void {
   log.debug("handleSetStake: creating a new setStake", [])
 
@@ -102,6 +101,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.startTime = event.block.timestamp
   dispute.ruled = disputeData.value7
   dispute.jurorsInvolved = []
+  dispute.numberOfRounds = BigInt.fromI32(1)
   log.debug("handleDisputeCreation: saving dispute {} entity",[event.params._disputeID.toString()])
   dispute.save()
   
@@ -531,7 +531,6 @@ export function handleCreateSubcourt(call: CreateSubcourtCall): void {
   // if the court it's created, the counter of KlerosCounter is incremented wihtin the getorCreateCourt
 }
 
-
 export function handleChangeSubcourtMinStake(call: ChangeSubcourtMinStakeCall): void {
   log.debug("handleChangeSubcourtMinStake: Updating minstake of court {}", [call.inputs._subcourtID.toString()])
   let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
@@ -758,6 +757,9 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
     juror.totalStaked = totalStake
     juror.ethRewards = BigInt.fromI32(0)
     juror.tokenRewards = BigInt.fromI32(0)
+    juror.coherency = null
+    juror.numberOfCoherentVotes = BigInt.fromI32(0)
+    juror.numberOfVotes = BigInt.fromI32(0)
     if (courtID != null){
       let court = getOrCreateCourt(courtID!, KLContract)
       juror.subcourtsIDs = [court.id]

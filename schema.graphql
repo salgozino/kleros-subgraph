@@ -52,6 +52,8 @@ type Court @entity {
   totalETHFees: BigInt!,
   "tokens transfered from incoherent jurors to coherent juros"
   totalTokenRedistributed: BigInt!,
+  "Coherency of the votes. Coherent Votes / Total Votes"
+  coherency: BigInt!,
 }
 
 type KlerosCounter @entity {
@@ -129,6 +131,12 @@ type Juror @entity {
   tokenRewards: BigInt!
   "Transfers of the rewards for this wallet"
   tokenAndETHShifts: [TokenAndETHShift]! @derivedFrom(field:"address")
+  "Coherency on the juror votes. Coherent Votes / Total Votes. Null if no votes"
+  coherency: BigInt,
+  "Number of coherent votes"
+  numberOfCoherentVotes: BigInt!
+  "Number of votes this juror has in closed disputes"
+  numberOfVotes: BigInt!
 }
 
 type CourtStake @entity {
@@ -190,9 +198,11 @@ type Dispute @entity {
   "Timestamp of the last period change"
   lastPeriodChange: BigInt!,
   "Rounds in the dispute"
-  rounds: [Round!] @derivedFrom(field:"dispute")
+  rounds: [Round!] @derivedFrom(field:"dispute"),
+  "Number of rounds in the dispute"
+  numberOfRounds: BigInt!,
   "Is ruled the case?"
-  ruled: Boolean!
+  ruled: Boolean!,
   "Current choice ruled"
   currentRulling: BigInt,
   "List of jurors (wallets) involved in the dispute"
@@ -253,6 +263,8 @@ type Vote @entity {
   castGasCost: BigInt!
   "total gas cost commit+cast"
   totalGasCost: BigInt!
+  "was the vote coherent with the majority? Null if dispute not closed"
+  coherent: Boolean
 }
 
 type NewPeriod @entity {
