@@ -12,7 +12,7 @@ import {
   } from "../generated/schema"
 import { getOrCreateCourt } from "./KlerosLiquidMappings";
 
-let KLAddress = Address.fromString('0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069')
+let KLAddress = Address.fromString('{{kl_address}}')
 
 export function handlePolicyUpdate(event: NewPolicyUpdateEvent): void {
   let subcourtId = event.params._subcourtID
