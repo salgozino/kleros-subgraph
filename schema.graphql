@@ -54,6 +54,10 @@ type Court @entity {
   totalTokenRedistributed: BigInt!,
   "Coherency of the votes. Coherent Votes / Total Votes"
   coherency: BigInt!,
+  "Number of votes in closed disputes"
+  numberOfVotes: BigInt!,
+  "Number of coherent votes"
+  numberOfCoherentVotes: BigInt!
 }
 
 type KlerosCounter @entity {
@@ -222,6 +226,8 @@ type Round @entity {
   dispute: Dispute!,
   "List of votes in the round"
   votes: [Vote!]! @derivedFrom(field: "round")
+  "Amount of votes in the Round"
+  numberOfVotes: BigInt!,
   "which choice wins in the round?"
   winningChoice: BigInt!,
   "Timestamp of the beggining of the round"

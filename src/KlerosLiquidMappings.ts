@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 import {
   StakeSet as StakeSetEvent,
   DisputeCreation as DisputeCreationEvent,
@@ -110,6 +111,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   let round = new Round(event.params._disputeID.toString()+"-"+BigInt.fromI32(0).toString())
   round.dispute = dispute.id
   round.startTime = event.block.timestamp
+  round.numberOfVotes = BigInt.fromI32(0)
   round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
   log.debug("handleDisputeCreation: saving the round 0 for the dispute {}", [event.params._disputeID.toString()])
   round.save()
@@ -157,6 +159,8 @@ export function handleDraw(event: DrawEvent): void {
   // create Vote entity
   log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
   let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())
+  round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
+  round.save()
   let dispute = Dispute.load(disputeID.toString())
   log.debug("handleDraw: loaded round id is {}", [round.id])
   log.debug("handleDraw: loaded dispute id is {}", [dispute.id])
@@ -466,9 +470,9 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
 
   
   // Iterate searching for the last round in this dispute
-  let roundNum = getLastRound(disputeID)
+  // let roundNum = getLastRound(disputeID)
+  let roundNum = dispute.numberOfRounds.plus(BigInt.fromI32(1))
   // adding 1 to create the new round
-  roundNum = roundNum.plus(BigInt.fromI32(1))
   let roundID = disputeID.toString()+"-"+roundNum.toString()  
   log.debug("handleAppealDecision: new round number is {}. Round id = {}", [roundNum.toString(), roundID])
   let round = new Round(roundID)
@@ -480,6 +484,7 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   let contract = KlerosLiquid.bind(event.address)
   let disputeData = contract.disputes(disputeID)
   dispute.period = getPeriodString(disputeData.value3)
+  dispute.numberOfRounds = dispute.numberOfRounds.plus(BigInt.fromI32(1))
   dispute.save()
   if (disputeData.value3 !== 0){
     log.error("handleAppealDecision: Assuming evidence as new period is wrong!, new period is {}", [dispute.period])
@@ -568,6 +573,38 @@ export function handleChangeSubcourtTimesPerPeriod(call: ChangeSubcourtTimesPerP
 
 export function handleExecuteRuling(call: ExecuteRulingCall): void{
   log.debug("handleExecuteRuling: Doing nothing here...",[])
+  let dispute = Dispute.load(call.inputs._disputeID.toString())
+  let court = Court.load(dispute.subcourtID)
+  for (let rIndex = 0; rIndex < dispute.numberOfRounds.toI32(); rIndex++) {
+    let round = Round.load(dispute.id.toString()+"-"+BigInt.fromI32(rIndex).toString())
+    for (let vIndex = 0; vIndex < round.numberOfVotes.toI32(); vIndex++) {
+      let voteId = getVoteId(call.inputs._disputeID, BigInt.fromI32(rIndex), BigInt.fromI32(vIndex))
+      let vote = Vote.load(voteId)
+      let juror = getOrCreateJuror(Address.fromString(vote.address), null, BigInt.fromI32(0), call.transaction.to)
+      if (vote.choice == dispute.currentRulling){
+        vote.coherent = true;
+        juror.numberOfCoherentVotes = juror.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+        court.numberOfCoherentVotes = court.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+        
+      } else {
+        vote.coherent = false;
+      }
+      juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
+      court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
+      if (court.numberOfVotes.gt(BigInt.fromI32(0))) {
+        court.coherency = court.numberOfCoherentVotes.div(court.numberOfVotes)
+      }
+      if (juror.numberOfVotes.gt(BigInt.fromI32(0))) {
+        juror.coherency = juror.numberOfCoherentVotes.div(juror.numberOfVotes)
+      }
+      
+      vote.save()
+      juror.save()
+      court.save()
+
+    }
+
+  }
 }
 
 // Helper functions
