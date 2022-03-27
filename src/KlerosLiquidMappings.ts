@@ -325,7 +325,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       log.debug("handleNewPeriod: Period 4: updating disputes ongoing and closed in court {} entity", [court.id])
       court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
       court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
-      court.save()
+      // court.save()
       
       // update counters
       log.debug("handleNewPeriod: Updating KC parameters in period 4. +1 for closed disputes, -1 for openDisputes", [])
@@ -334,6 +334,37 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       // update arbitrable count
       arbitrable.openDisputes = arbitrable.openDisputes.minus(BigInt.fromI32(1))
       arbitrable.closedDisputes = arbitrable.closedDisputes.plus(BigInt.fromI32(1))
+
+      // update coherency
+      log.debug('handleNewPeriod: Updating coherency counters for dispute {}', [dispute.id])
+      for (let rIndex = 0; rIndex < dispute.numberOfRounds.toI32(); rIndex++) {
+        let round = Round.load(dispute.id.toString()+"-"+BigInt.fromI32(rIndex).toString())
+        for (let vIndex = 0; vIndex < round.numberOfVotes.toI32(); vIndex++) {
+          let voteId = getVoteId(BigInt.fromString(dispute.id), BigInt.fromI32(rIndex), BigInt.fromI32(vIndex))
+          
+          let vote = Vote.load(voteId)
+          let juror = getOrCreateJuror(Address.fromString(vote.address), null, BigInt.fromI32(0), event.address)
+          if (vote.choice === dispute.currentRulling){
+            vote.coherent = true;
+            juror.numberOfCoherentVotes = juror.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+            court.numberOfCoherentVotes = court.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+          } else {
+            vote.coherent = false;
+          }
+          log.debug('handleNewPeriod: Updating coherency of vote {}', [vote.id])
+          juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
+          court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
+          if (court.numberOfVotes.gt(BigInt.fromI32(0))) {
+            court.coherency = court.numberOfCoherentVotes.div(court.numberOfVotes)
+          }
+          if (juror.numberOfVotes.gt(BigInt.fromI32(0))) {
+            juror.coherency = juror.numberOfCoherentVotes.div(juror.numberOfVotes)
+          }
+          vote.save()
+          juror.save()
+        }
+      }
+      court.save()
     } else if (event.params._period==3){
       // moving to appeal phase
       log.debug("handleNewPeriod: Updating KC parameters in period 3. +1 for appealPhase", [])
@@ -575,38 +606,6 @@ export function handleChangeSubcourtTimesPerPeriod(call: ChangeSubcourtTimesPerP
 
 export function handleExecuteRuling(call: ExecuteRulingCall): void{
   log.debug("handleExecuteRuling: Doing nothing here...",[])
-  let dispute = Dispute.load(call.inputs._disputeID.toString())
-  let court = Court.load(dispute.subcourtID)
-  for (let rIndex = 0; rIndex < dispute.numberOfRounds.toI32(); rIndex++) {
-    let round = Round.load(dispute.id.toString()+"-"+BigInt.fromI32(rIndex).toString())
-    for (let vIndex = 0; vIndex < round.numberOfVotes.toI32(); vIndex++) {
-      let voteId = getVoteId(call.inputs._disputeID, BigInt.fromI32(rIndex), BigInt.fromI32(vIndex))
-      let vote = Vote.load(voteId)
-      let juror = getOrCreateJuror(Address.fromString(vote.address), null, BigInt.fromI32(0), call.transaction.to!)
-      if (vote.choice === dispute.currentRulling){
-        vote.coherent = true;
-        juror.numberOfCoherentVotes = juror.numberOfCoherentVotes.plus(BigInt.fromI32(1))
-        court.numberOfCoherentVotes = court.numberOfCoherentVotes.plus(BigInt.fromI32(1))
-        
-      } else {
-        vote.coherent = false;
-      }
-      juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
-      court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
-      if (court.numberOfVotes.gt(BigInt.fromI32(0))) {
-        court.coherency = court.numberOfCoherentVotes.div(court.numberOfVotes)
-      }
-      if (juror.numberOfVotes.gt(BigInt.fromI32(0))) {
-        juror.coherency = juror.numberOfCoherentVotes.div(juror.numberOfVotes)
-      }
-      
-      vote.save()
-      juror.save()
-      court.save()
-
-    }
-
-  }
 }
 
 // Helper functions
