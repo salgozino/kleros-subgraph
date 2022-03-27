@@ -4,8 +4,8 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml && mustache config/mainnet.json PolicyRegistryMappingTemplate.ts > src/PolicyRegistryMapping.ts",
-    "prepare:xdai": "mustache config/xdai.json subgraph.template.yaml > subgraph.yaml && mustache config/xdai.json PolicyRegistryMappingTemplate.ts > src/PolicyRegistryMapping.ts",
+    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
+    "prepare:xdai": "mustache config/xdai.json subgraph.template.yaml > subgraph.yaml",
     "deploy:mainnet": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard --access-token ebb09243071d4d378d2aa1ef6f55efc1",
     "deploy:xdai": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard-xdai --access-token ebb09243071d4d378d2aa1ef6f55efc1",
     "deploy:test-xdai": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa --access-token ebb09243071d4d378d2aa1ef6f55efc1",

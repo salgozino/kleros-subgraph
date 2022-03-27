@@ -1,6 +1,5 @@
 import {
     log,
-    Address,
   } from "@graphprotocol/graph-ts";
   
 import {
@@ -10,9 +9,7 @@ import {
     PolicyUpdate,
     Court
   } from "../generated/schema"
-import { getOrCreateCourt } from "./KlerosLiquidMappings";
 
-let KLAddress = Address.fromString('0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069')
 
 export function handlePolicyUpdate(event: NewPolicyUpdateEvent): void {
   let subcourtId = event.params._subcourtID
@@ -26,10 +23,9 @@ export function handlePolicyUpdate(event: NewPolicyUpdateEvent): void {
   entity.save()
 
   log.info("Trying to update new policy in court {}", [subcourtId.toString()])
-  let court = getOrCreateCourt(subcourtId, KLAddress)
-  if (court == null){
-    return
-  } else {
+  let court = Court.load(subcourtId.toString())
+  // if the court doesn't exist, the policy will be added when it's created.
+  if (court !== null){
     log.info("Court found!, updating policy", [])
     court.policy = entity.id
     court.save()
