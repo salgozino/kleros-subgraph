@@ -111,7 +111,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   let round = new Round(event.params._disputeID.toString()+"-"+BigInt.fromI32(0).toString())
   round.dispute = dispute.id
   round.startTime = event.block.timestamp
-  round.numberOfVotes = BigInt.fromI32(0)
+  round.numberOfVotes = BigInt.fromI32(0)  // each vote it's added when draw
   round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
   log.debug("handleDisputeCreation: saving the round 0 for the dispute {}", [event.params._disputeID.toString()])
   round.save()
@@ -182,6 +182,7 @@ export function handleDraw(event: DrawEvent): void {
   voteEntity.castGasPrice = BigInt.fromI32(0)
   voteEntity.castGasCost = BigInt.fromI32(0)
   voteEntity.totalGasCost = BigInt.fromI32(0)
+  voteEntity.coherent = false
   voteEntity.save()
   log.debug("handleDraw: vote entity stored",[])
 
@@ -478,6 +479,7 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   let round = new Round(roundID)
   round.dispute = dispute.id
   round.startTime = event.block.timestamp
+  round.numberOfVotes = BigInt.fromI32(0) // each vote it's added when draw
   round.winningChoice = BigInt.fromI32(0) // initiate in pending
   round.save()
   // Check if dispute is not jumped to parent court
@@ -580,8 +582,8 @@ export function handleExecuteRuling(call: ExecuteRulingCall): void{
     for (let vIndex = 0; vIndex < round.numberOfVotes.toI32(); vIndex++) {
       let voteId = getVoteId(call.inputs._disputeID, BigInt.fromI32(rIndex), BigInt.fromI32(vIndex))
       let vote = Vote.load(voteId)
-      let juror = getOrCreateJuror(Address.fromString(vote.address), null, BigInt.fromI32(0), call.transaction.to)
-      if (vote.choice == dispute.currentRulling){
+      let juror = getOrCreateJuror(Address.fromString(vote.address), null, BigInt.fromI32(0), call.transaction.to!)
+      if (vote.choice === dispute.currentRulling){
         vote.coherent = true;
         juror.numberOfCoherentVotes = juror.numberOfCoherentVotes.plus(BigInt.fromI32(1))
         court.numberOfCoherentVotes = court.numberOfCoherentVotes.plus(BigInt.fromI32(1))
@@ -707,6 +709,9 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     court.alpha = courtObj.value3
     court.feeForJuror = courtObj.value4
     court.jurorsForCourtJump = courtObj.value5
+    court.numberOfCoherentVotes = BigInt.fromI32(0)
+    court.numberOfVotes = BigInt.fromI32(0)
+    court.coherency = null
     // get timePeriods
     let subcourtObj = contract.getSubcourt(subcourtID)
     court.timePeriods = subcourtObj.value1

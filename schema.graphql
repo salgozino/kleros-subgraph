@@ -53,7 +53,7 @@ type Court @entity {
   "tokens transfered from incoherent jurors to coherent juros"
   totalTokenRedistributed: BigInt!,
   "Coherency of the votes. Coherent Votes / Total Votes"
-  coherency: BigInt!,
+  coherency: BigInt,
   "Number of votes in closed disputes"
   numberOfVotes: BigInt!,
   "Number of coherent votes"
@@ -269,8 +269,8 @@ type Vote @entity {
   castGasCost: BigInt!
   "total gas cost commit+cast"
   totalGasCost: BigInt!
-  "was the vote coherent with the majority? Null if dispute not closed"
-  coherent: Boolean
+  "was the vote coherent with the majority? initialized in false"
+  coherent: Boolean!
 }
 
 type NewPeriod @entity {
