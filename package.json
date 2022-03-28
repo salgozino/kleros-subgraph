@@ -8,8 +8,8 @@
     "prepare:xdai": "mustache config/xdai.json subgraph.template.yaml > subgraph.yaml",
     "deploy:mainnet": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard --access-token ebb09243071d4d378d2aa1ef6f55efc1",
     "deploy:xdai": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard-xdai --access-token ebb09243071d4d378d2aa1ef6f55efc1",
-    "deploy:test-xdai": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa --access-token ebb09243071d4d378d2aa1ef6f55efc1",
-    "deploy:test-mainnet": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa-mainnet --access-token ebb09243071d4d378d2aa1ef6f55efc1",
+    "deploy:xdai-test": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa --access-token ebb09243071d4d378d2aa1ef6f55efc1",
+    "deploy:mainnet-test": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa-mainnet --access-token ebb09243071d4d378d2aa1ef6f55efc1",
     "test": "mocha -r ts-node/register 'tests/*.ts'"
   },
   "dependencies": {
