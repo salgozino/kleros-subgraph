@@ -158,12 +158,14 @@ export function handleDraw(event: DrawEvent): void {
   log.debug("handleDraw: drawEntity stored",[])
   // create Vote entity
   log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
-  let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())
-  round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
-  round.save()
+  
   let dispute = Dispute.load(disputeID.toString())
-  log.debug("handleDraw: loaded round id is {}", [round.id])
   log.debug("handleDraw: loaded dispute id is {}", [dispute.id])
+  let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())
+  log.debug("handleDraw: loaded round id is {}. Dispute last round it's {}", [round.id, dispute.numberOfRounds.toString()])
+  round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
+  log.debug("handleDraw: Adding 1 vote to the round voute counter", [])
+  
   let voteEntity = new Vote(drawID)
   let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
   let juror = getOrCreateJuror(event.params._address, BigInt.fromString(court.id), BigInt.fromI32(0), event.address)
@@ -218,6 +220,7 @@ export function handleDraw(event: DrawEvent): void {
   dispute.jurorsInvolved = jurors_involved
   log.debug('handleDraw: Adding juror {} to dispute {}', [juror.id, dispute.id])
   dispute.save()
+  round.save()
 }
 
 export function handleCastCommit(call: CastCommitCall): void {
@@ -339,6 +342,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       log.debug('handleNewPeriod: Updating coherency counters for dispute {}', [dispute.id])
       for (let rIndex = 0; rIndex < dispute.numberOfRounds.toI32(); rIndex++) {
         let round = Round.load(dispute.id.toString()+"-"+BigInt.fromI32(rIndex).toString())
+        log.debug('handleNewPeriod: searching in Round {} to update coherency', [round.id])
         for (let vIndex = 0; vIndex < round.numberOfVotes.toI32(); vIndex++) {
           let voteId = getVoteId(BigInt.fromString(dispute.id), BigInt.fromI32(rIndex), BigInt.fromI32(vIndex))
           
@@ -743,19 +747,21 @@ function getVoteId(dispute:BigInt, roundNum:BigInt, voteId:BigInt): string{
 
 function getLastRound(disputeID:BigInt):BigInt{
   // Iterate searching for the last round in this dispute
-  let roundNum = BigInt.fromI32(0)
-  let roundID = disputeID.toString()+"-"+roundNum.toString()
-  let lastround = Round.load(roundID)
-  if (lastround == null) {return null}
-  do {
-    roundNum = roundNum.plus(BigInt.fromI32(1))
-    roundID = disputeID.toString()+"-"+roundNum.toString()
-    //log.debug("getLastRound: searching for roundID {}",[roundID])
-    lastround = Round.load(roundID)
-  }
-  while (lastround != null);
-  // the last round searched doesn't exist, so I've to return the last one??
-  return roundNum.minus(BigInt.fromI32(1))!
+  // let roundNum = BigInt.fromI32(0)
+  // let roundID = disputeID.toString()+"-"+roundNum.toString()
+  // let lastround = Round.load(roundID)
+  // if (lastround == null) {return null}
+  // do {
+  //   roundNum = roundNum.plus(BigInt.fromI32(1))
+  //   roundID = disputeID.toString()+"-"+roundNum.toString()
+  //   //log.debug("getLastRound: searching for roundID {}",[roundID])
+  //   lastround = Round.load(roundID)
+  // }
+  // while (lastround != null);
+  // // the last round searched doesn't exist, so I've to return the last one??
+  // return roundNum.minus(BigInt.fromI32(1))!
+  let dispute = Dispute.load(disputeID.toString())
+  return dispute.numberOfRounds
 }
 
 function getCourtStakeId(address: Address, courtID: BigInt): string {
