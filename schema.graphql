@@ -52,7 +52,7 @@ type Court @entity {
   totalETHFees: BigInt!,
   "tokens transfered from incoherent jurors to coherent juros"
   totalTokenRedistributed: BigInt!,
-  "Coherency of the votes. Coherent Votes / Total Votes"
+  "Coherency of the votes. Coherent Votes / Total Votes * 100"
   coherency: BigInt,
   "Number of votes in closed disputes"
   numberOfVotes: BigInt!,
@@ -135,7 +135,7 @@ type Juror @entity {
   tokenRewards: BigInt!
   "Transfers of the rewards for this wallet"
   tokenAndETHShifts: [TokenAndETHShift]! @derivedFrom(field:"address")
-  "Coherency on the juror votes. Coherent Votes / Total Votes. Null if no votes"
+  "Coherency on the juror votes. Coherent Votes / Total Votes * 100. Null if no votes"
   coherency: BigInt,
   "Number of coherent votes"
   numberOfCoherentVotes: BigInt!

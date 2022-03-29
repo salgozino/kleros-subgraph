@@ -359,10 +359,10 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
           juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
           court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
           if (court.numberOfVotes.gt(BigInt.fromI32(0))) {
-            court.coherency = court.numberOfCoherentVotes.div(court.numberOfVotes)
+            court.coherency = court.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(court.numberOfVotes)
           }
           if (juror.numberOfVotes.gt(BigInt.fromI32(0))) {
-            juror.coherency = juror.numberOfCoherentVotes.div(juror.numberOfVotes)
+            juror.coherency = juror.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(juror.numberOfVotes)
           }
           vote.save()
           juror.save()
