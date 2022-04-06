@@ -19,7 +19,13 @@ dataSources:
         - Round
         - Vote
         - TokenAndETHShift
-        - Period
+        - NewPeriod
+        - Court
+        - KlerosCounter
+        - CourtStake
+        - Juror
+        - Arbitrable
+        - Draw
       abis:
         - name: KlerosLiquid
           file: ./abis/KlerosLiquid.json
@@ -69,6 +75,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - PolicyUpdate
+        - Court
       abis:
         - name: PolicyRegistry
           file: ./abis/PolicyRegistry.json
