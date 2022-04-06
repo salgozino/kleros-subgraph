@@ -1,15 +1,15 @@
 {
   "name": "klerosboard",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
+    "deploy:mainnet": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard",
     "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
     "prepare:xdai": "mustache config/xdai.json subgraph.template.yaml > subgraph.yaml",
-    "deploy:mainnet": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard --access-token ebb09243071d4d378d2aa1ef6f55efc1",
-    "deploy:xdai": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard-xdai --access-token ebb09243071d4d378d2aa1ef6f55efc1",
-    "deploy:xdai-test": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa --access-token ebb09243071d4d378d2aa1ef6f55efc1",
-    "deploy:mainnet-test": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa-mainnet --access-token ebb09243071d4d378d2aa1ef6f55efc1",
+    "deploy:xdai": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard-xdai",
+    "deploy:xdai-test": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa",
+    "deploy:mainnet-test": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa-mainnet",
     "test": "mocha -r ts-node/register 'tests/*.ts'"
   },
   "dependencies": {
@@ -24,8 +24,11 @@
   "devDependencies": {
     "@types/chai": "^4.2.19",
     "@types/mocha": "^8.2.2",
+    "@typescript-eslint/eslint-plugin": "^5.15.0",
+    "@typescript-eslint/parser": "^5.15.0",
     "babel-register": "^6.26.0",
     "chai": "^4.3.4",
+    "eslint": "^8.11.0",
     "mocha": "^9.0.1",
     "mustache": "^3.1.0",
     "ts-node": "^10.0.0"
