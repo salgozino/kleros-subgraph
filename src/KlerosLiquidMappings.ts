@@ -29,6 +29,7 @@ import {
   CourtStake,
   TokenAndETHShift,
   Arbitrable,
+  PolicyUpdate
 } from "../generated/schema"
 import {
   log,
@@ -37,6 +38,7 @@ import {
   Bytes,
   Entity
 } from "@graphprotocol/graph-ts";
+import { PolicyRegistry } from "../generated/PolicyRegistry/PolicyRegistry";
 
 
 // Phase constants
@@ -662,6 +664,13 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     court.tokenStaked = BigInt.fromI32(0)
     court.totalETHFees = BigInt.fromI32(0)
     court.totalTokenRedistributed = BigInt.fromI32(0)
+    let policy = PolicyUpdate.load(subcourtID.toString())
+    if (policy == null) {
+      court.policy = null
+    } else{ 
+      court.policy = policy.id
+    }
+    
     // get courtInputs from contract
     log.debug("getOrCreateCourt: Asking to the contract the parameters",[])
     let contract = KlerosLiquid.bind(KLContract)

@@ -8,6 +8,8 @@
     "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
     "prepare:xdai": "mustache config/xdai.json subgraph.template.yaml > subgraph.yaml",
     "deploy:xdai": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard-xdai",
+    "deploy:xdai-test": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa",
+    "deploy:mainnet-test": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa-mainnet",
     "test": "mocha -r ts-node/register 'tests/*.ts'"
   },
   "dependencies": {
