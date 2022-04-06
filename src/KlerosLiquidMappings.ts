@@ -567,51 +567,47 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
 }
 
 export function handleCreateSubcourt(call: CreateSubcourtCall): void {
-  log.debug("handleCreateSubcourt: Asking for current court count", [])
+  // log.debug("handleCreateSubcourt: Asking for current court count", [])
   let kc = getOrInitializeKlerosCounter()
   
-  log.debug("handleCreateSubcourt: Creating new court with id {}", [kc.courtsCount.toString()])
+  log.info("handleCreateSubcourt: Creating new court with id {}", [kc.courtsCount.toString()])
   getOrCreateCourt(kc.courtsCount, call.to)
   // if the court it's created, the counter of KlerosCounter is incremented wihtin the getorCreateCourt
 }
 
 export function handleChangeSubcourtMinStake(call: ChangeSubcourtMinStakeCall): void {
-  log.debug("handleChangeSubcourtMinStake: Updating minstake of court {}", [call.inputs._subcourtID.toString()])
+  log.info("handleChangeSubcourtMinStake: Updating minstake of court {}", [call.inputs._subcourtID.toString()])
   let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
   court.minStake = call.inputs._minStake
   court.save()
 }
 
 export function handleChangeSubcourtAlpha(call: ChangeSubcourtAlphaCall): void {
-  log.debug("handleChangeSubcourtAlpha: Updating alpha of court {}", [call.inputs._subcourtID.toString()])
+  log.info("handleChangeSubcourtAlpha: Updating alpha of court {}", [call.inputs._subcourtID.toString()])
   let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
   court.alpha = call.inputs._alpha
   court.save()
 }
 
 export function handleChangeSubcourtJurorFee(call: ChangeSubcourtJurorFeeCall): void {
-  log.debug("handleChangeSubcourtJurorFee: Updating jurorfees of court {}", [call.inputs._subcourtID.toString()])
+  log.info("handleChangeSubcourtJurorFee: Updating jurorfees of court {}", [call.inputs._subcourtID.toString()])
   let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
   court.feeForJuror = call.inputs._feeForJuror
   court.save()
 }
 
 export function handleChangeSubcourtJurorsForJump(call: ChangeSubcourtJurorsForJumpCall): void {
-  log.debug("handleChangeSubcourtJurorsForJump: Updating jurorforJump of court {}", [call.inputs._subcourtID.toString()])
+  log.info("handleChangeSubcourtJurorsForJump: Updating jurorforJump of court {}", [call.inputs._subcourtID.toString()])
   let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
   court.jurorsForCourtJump = call.inputs._jurorsForCourtJump
   court.save()
 }
 
 export function handleChangeSubcourtTimesPerPeriod(call: ChangeSubcourtTimesPerPeriodCall): void {
-  log.debug("handleChangeSubcourtTimesPerPeriod: Updating timesPerPeriod of court {}", [call.inputs._subcourtID.toString()])
+  log.info("handleChangeSubcourtTimesPerPeriod: Updating timesPerPeriod of court {}", [call.inputs._subcourtID.toString()])
   let court = getOrCreateCourt(call.inputs._subcourtID, call.to)
   court.timePeriods = call.inputs._timesPerPeriod
   court.save()
-}
-
-export function handleExecuteRuling(call: ExecuteRulingCall): void{
-  log.debug("handleExecuteRuling: Doing nothing here...",[])
 }
 
 // Helper functions
