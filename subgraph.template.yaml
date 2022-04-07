@@ -47,8 +47,6 @@ dataSources:
           handler: handleCastCommit
         - function: castVote(uint256,uint256[],uint256,uint256)
           handler: handleCastVote
-        - function: executeRuling(uint256)
-          handler: handleExecuteRuling
         - function: changeSubcourtMinStake(uint96,uint256)
           handler: handleChangeSubcourtMinStake
         - function: changeSubcourtAlpha(uint96,uint256)
