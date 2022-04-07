@@ -133,14 +133,14 @@ type Juror @entity {
   ethRewards: BigInt!
   "Amount of Token (PNK) rewarded as juror (+ it's gain, - it's loss)"
   tokenRewards: BigInt!
-  "Transfers of the rewards for this wallet"
-  tokenAndETHShifts: [TokenAndETHShift]! @derivedFrom(field:"address")
   "Coherency on the juror votes. Coherent Votes / Total Votes * 100. Null if no votes"
   coherency: BigInt,
   "Number of coherent votes"
   numberOfCoherentVotes: BigInt!
   "Number of votes this juror has in closed disputes"
   numberOfVotes: BigInt!
+  "Transfers of the rewards for this wallet"
+  tokenAndETHShifts: [TokenAndETHShift!]! @derivedFrom(field:"address")
 }
 
 type CourtStake @entity {

@@ -14,8 +14,7 @@ import {
   ChangeSubcourtAlphaCall,
   ChangeSubcourtJurorFeeCall,
   ChangeSubcourtJurorsForJumpCall,
-  ChangeSubcourtTimesPerPeriodCall,
-  ExecuteRulingCall
+  ChangeSubcourtTimesPerPeriodCall
 } from "../generated/KlerosLiquid/KlerosLiquid"
 import {
   StakeSet,
@@ -36,20 +35,10 @@ import {
   log,
   Address,
   BigInt,
-  Bytes,
-  Entity
+  Bytes
 } from "@graphprotocol/graph-ts";
-import { PolicyRegistry } from "../generated/PolicyRegistry/PolicyRegistry";
 
 
-// Phase constants
-enum Period {
-  evidence = 0,
-  commit,
-  vote,
-  appeal,
-  execution
-}
 
 export function handleStakeSet(event: StakeSetEvent): void {
   log.debug("handleSetStake: creating a new setStake", [])
@@ -67,7 +56,7 @@ export function handleStakeSet(event: StakeSetEvent): void {
   entity.newTotalStake = event.params._newTotalStake
   entity.blocknumber = event.block.number
   entity.timestamp = event.block.timestamp
-  entity.gasCost = event.transaction.gasUsed.times(event.transaction.gasPrice)
+  entity.gasCost = event.transaction.gasLimit.times(event.transaction.gasPrice)
   entity.save()
   log.debug("handleStakeSet: stake set stored",[])
   
@@ -160,11 +149,8 @@ export function handleDraw(event: DrawEvent): void {
   log.debug("handleDraw: drawEntity stored",[])
   // create Vote entity
   log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
-  
-  let dispute = Dispute.load(disputeID.toString())
-  log.debug("handleDraw: loaded dispute id is {}", [dispute.id])
-  let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())
-  log.debug("handleDraw: loaded round id is {}. Dispute last round it's {}", [round.id, dispute.numberOfRounds.toString()])
+  let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())!
+  let dispute = Dispute.load(disputeID.toString())!
   round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
   log.debug("handleDraw: Adding 1 vote to the round voute counter", [])
   
@@ -205,8 +191,8 @@ export function handleDraw(event: DrawEvent): void {
     let alreadyDrawn = false
     for (let i=0; i<voteID.toI32(); i++){
       let tempDrawID = getVoteId(disputeID, roundNumber, BigInt.fromI32(i))
-      let otherVote = Draw.load(tempDrawID)
-      if (otherVote.address == event.params._address){
+      let otherVote = Draw.load(tempDrawID)!
+      if (otherVote.address === event.params._address){
         alreadyDrawn = true
       }
     }
@@ -249,7 +235,7 @@ export function handleCastCommit(call: CastCommitCall): void {
       vote.voted = true
       vote.timestamp = call.block.timestamp
       vote.commit = commit
-      vote.commitGasUsed = call.transaction.gasUsed
+      vote.commitGasUsed = call.transaction.gasLimit
       vote.commitGasPrice = call.transaction.gasPrice
       vote.commitGasCost = vote.commitGasUsed.times(vote.commitGasPrice)
       vote.totalGasCost = vote.totalGasCost.plus(vote.commitGasCost)
@@ -283,7 +269,7 @@ export function handleCastVote(call: CastVoteCall): void {
       vote.salt = call.inputs._salt
       vote.voted = true
       vote.timestamp = call.block.timestamp
-      vote.castGasUsed = call.transaction.gasUsed
+      vote.castGasUsed = call.transaction.gasLimit
       vote.castGasPrice = call.transaction.gasPrice
       vote.castGasCost = vote.castGasUsed.times(vote.castGasPrice)
       vote.totalGasCost = vote.totalGasCost.plus(vote.castGasCost)
@@ -455,7 +441,7 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
   let entity = new TokenAndETHShift(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
     )
-  let dispute = Dispute.load(event.params._disputeID.toString())
+  let dispute = Dispute.load(event.params._disputeID.toString())!
   let juror = getOrCreateJuror(event.params._address, null, BigInt.fromI32(0), event.address)
   entity.disputeId = dispute.id
   entity.tokenAmount = event.params._tokenAmount
@@ -683,7 +669,7 @@ function getOrInitializeKlerosCounter(): KlerosCounter {
   } else{
     log.debug("getOrInitializeKlerosCounter: counters loaded",[])
   }
-  return kc!
+  return kc
 }
 
 export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court {
@@ -743,7 +729,7 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     kc.courtsCount = kc.courtsCount.plus(BigInt.fromI32(1))
     kc.save()
   }
-  return court!
+  return court
 }
 
 function getVoteId(dispute:BigInt, roundNum:BigInt, voteId:BigInt): string{
@@ -752,21 +738,19 @@ function getVoteId(dispute:BigInt, roundNum:BigInt, voteId:BigInt): string{
 
 function getLastRound(disputeID:BigInt):BigInt{
   // Iterate searching for the last round in this dispute
-  // let roundNum = BigInt.fromI32(0)
-  // let roundID = disputeID.toString()+"-"+roundNum.toString()
-  // let lastround = Round.load(roundID)
-  // if (lastround == null) {return null}
-  // do {
-  //   roundNum = roundNum.plus(BigInt.fromI32(1))
-  //   roundID = disputeID.toString()+"-"+roundNum.toString()
-  //   //log.debug("getLastRound: searching for roundID {}",[roundID])
-  //   lastround = Round.load(roundID)
-  // }
-  // while (lastround != null);
-  // // the last round searched doesn't exist, so I've to return the last one??
-  // return roundNum.minus(BigInt.fromI32(1))!
-  let dispute = Dispute.load(disputeID.toString())
-  return dispute.numberOfRounds
+  let roundNum = BigInt.fromI32(0)
+  let roundID = disputeID.toString()+"-"+roundNum.toString()
+  let lastround = Round.load(roundID)
+  if (lastround == null) {return BigInt.fromI32(0)}
+  do {
+    roundNum = roundNum.plus(BigInt.fromI32(1))
+    roundID = disputeID.toString()+"-"+roundNum.toString()
+    //log.debug("getLastRound: searching for roundID {}",[roundID])
+    lastround = Round.load(roundID)
+  }
+  while (lastround != null);
+  // the last round searched doesn't exist, so I've to return the last one??
+  return roundNum.minus(BigInt.fromI32(1))
 }
 
 function getCourtStakeId(address: Address, courtID: BigInt): string {
@@ -795,7 +779,7 @@ function createOrUpdateCourtStake(courtID: BigInt, stake: BigInt, address: Addre
 
   courtStake.save()
 
-  return courtStake!
+  return courtStake
 }
 
 function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: BigInt, KLContract: Address): Juror {
@@ -813,12 +797,12 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
     juror.numberOfCoherentVotes = BigInt.fromI32(0)
     juror.numberOfVotes = BigInt.fromI32(0)
     if (courtID != null){
-      let court = getOrCreateCourt(courtID!, KLContract)
+      let court = getOrCreateCourt(courtID, KLContract)
       juror.subcourtsIDs = [court.id]
     }
     juror.save()
   }
-  return juror!
+  return juror
 }
 
 function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, totalStaked: BigInt,
@@ -848,8 +832,8 @@ function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, total
 
   // update juror entity
   juror.totalStaked = totalStaked
-  let subcourtIDs = juror.subcourtsIDs
-  if (subcourtIDs.indexOf(court.id) == -1){
+  let subcourtIDs = juror.subcourtsIDs!
+  if (subcourtIDs.indexOf(court.id) === -1){
     subcourtIDs.push(court.id)
   }
   juror.subcourtsIDs = subcourtIDs
@@ -857,7 +841,8 @@ function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, total
   juror.save()
 }
 
-function updateCourtDueToStake(jurorAddress: Address, courtID:BigInt, updatingParent: boolean, oldStake:BigInt, newStake:BigInt, jurorStatus:number, KLContract: Address): void{
+function updateCourtDueToStake(jurorAddress: Address, courtID:BigInt | null, updatingParent: boolean, oldStake:BigInt, newStake:BigInt, jurorStatus:number, KLContract: Address): void{
+  if (courtID === null) return;
   let court = getOrCreateCourt(courtID, KLContract)
   
   if (jurorStatus < 1){
@@ -895,8 +880,8 @@ function updateCourtDueToStake(jurorAddress: Address, courtID:BigInt, updatingPa
   court.save()
 
   // if this court has a parent, update the tokenStaked and counters in the parent court too.
-  if (court.parent != null){
-    updateCourtDueToStake(jurorAddress, BigInt.fromString(court.parent), true, oldStake, newStake, jurorStatus, KLContract)
+  if (court.parent !== null){
+    updateCourtDueToStake(jurorAddress, BigInt.fromString(court.parent!), true, oldStake, newStake, jurorStatus, KLContract)
   }
 }
 
@@ -913,7 +898,7 @@ function checkJurorStatus(address:Address, stake:BigInt, newTotalStaked:BigInt, 
   if (juror == null){
     // This juror doesn't exist, it's a new juror staking
     log.debug("checkJurorStatus: Say hi to {} who is a new juror",[address.toHexString()])
-    return 4!
+    return 4
   }
   // the juror exist
   let isActiveGlobally = juror.totalStaked.gt(BigInt.fromI32(0)) // BEfore this stake it's stored.
@@ -921,15 +906,15 @@ function checkJurorStatus(address:Address, stake:BigInt, newTotalStaked:BigInt, 
     if (stake.gt(BigInt.fromI32(0)) && newTotalStaked.gt(BigInt.fromI32(0))){
       // active juror in this court changing it's stake in this court.
       log.debug("checkJurorStatus: {} is an active juror changing his stake in the court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
-      return 1!
+      return 1
     } else if (stake.equals(BigInt.fromI32(0)) && newTotalStaked.gt(BigInt.fromI32(0))){
       // active juror of this court, leaving just this court
       
-      return 0!
+      return 0
     } else if (stake.equals(BigInt.fromI32(0)) && newTotalStaked.equals(BigInt.fromI32(0))){
       // active juror leaving all the courts
       log.debug("checkJurorStatus: {} is an active juror quitting from all the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(),newTotalStaked.toString(), stake.toString()])
-      return -1!
+      return -1
     } else{
       log.error("checkJurorStatus: Reaching an imposible condition¿?. stake = {}, newTotalStaked = {}", [
         stake.toString(), newTotalStaked.toString()])
@@ -941,25 +926,25 @@ function checkJurorStatus(address:Address, stake:BigInt, newTotalStaked:BigInt, 
       if (stake.gt(BigInt.fromI32(0))){
         // this juror is staking for the first time in this court.
         log.debug("checkJurorStatus: {} is an active juror but first time in this court!. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
-        return 3!
+        return 3
       } else {
         log.warning("checkJurorStatus: {} is a active in another court, but not in this court. Is staking 0? Returning 1. Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), stake.toString()])
-        return 1!
+        return 1
       }
     } else {
       if (stake.gt(BigInt.fromI32(0))){
         // inactive juror staking
         log.debug("checkJurorStatus: Hey, {} is a juror returning to the courts!. old Total Staked {}, new Total Staked {}, stake {}",[address.toHexString(), juror.totalStaked.toString(), newTotalStaked.toString(), stake.toString()])
-        return 2!
+        return 2
       } else {
         // inactive juror unstaking (double txs?)
         log.debug("checkJurorStatus: Mmmm, this is an inactive juror staking 0? The juror {} is sending the tx twice?. Returning status as 1 (not change active/inactive jurors",[juror.id])
-        return 1!
+        return 1
       }
     }
   }
   log.error("checkJurorStatus: Mmmm, This should never be met, what's doing the juror {} with stake {}?. TotalStaked {}. Returning 1",[juror.id, stake.toString(), juror.totalStaked.toString()])
-  return 1!
+  return 1
 }
 
 function getCourtStakeValue(court:BigInt, address:Address): BigInt {
@@ -1068,5 +1053,5 @@ function getOrCreateArbitrable(address:Address): Arbitrable {
     kc.numberOfArbitrables = kc.numberOfArbitrables.plus(BigInt.fromI32(1))
     kc.save()
   }
-  return arbitrable!
+  return arbitrable
 }
