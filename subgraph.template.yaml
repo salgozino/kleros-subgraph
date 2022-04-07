@@ -11,7 +11,7 @@ dataSources:
       startBlock: {{kl_startBlock}}
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       entities:
         - StakeSet
@@ -69,7 +69,7 @@ dataSources:
       startBlock: {{pr_startBlock}}
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       entities:
         - PolicyUpdate
