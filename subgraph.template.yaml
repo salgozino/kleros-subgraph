@@ -81,3 +81,24 @@ dataSources:
         - event: PolicyUpdate(indexed uint256,string)
           handler: handlePolicyUpdate
       file: ./src/PolicyRegistryMapping.ts
+  - kind: ethereum/contract
+    name: KlerosGovernor
+    network: {{network}}
+    source:
+      address: '{{kg_address}}'
+      abi: KlerosGovernor
+      startBlock: {{pr_startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - PolicyUpdate
+        - Court
+      abis:
+        - name: KlerosGovernor
+          file: ./abis/KlerosGovernor.json
+      callHandlers:
+        - function: executeTransactionList(uint256,uint256,uint256)
+          handler: handlerExecuteTransactionList
+      file: ./src/KlerosGovernor.ts
