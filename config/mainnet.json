@@ -1,7 +1,9 @@
 {
     "network": "mainnet",
     "kl_address": "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069",
-    "kl_startBlock": 7303699,
+    "kl_startBlock": 11068577,
     "pr_address": "0xCf1f07713d5193FaE5c1653C9f61953D048BECe4",
-    "pr_startBlock": 10175793
+    "pr_startBlock": 11068577,
+    "kg_address": "0xe5bcea6f87aaee4a81f64dfdb4d30d400e0e5cf4",
+    "kg_startBlock": 11068577
 }
