@@ -87,17 +87,19 @@ dataSources:
     source:
       address: '{{kg_address}}'
       abi: KlerosGovernor
-      startBlock: {{pr_startBlock}}
+      startBlock: {{kg_startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
       entities:
-        - PolicyUpdate
         - Court
+        - KlerosLiquid
       abis:
         - name: KlerosGovernor
           file: ./abis/KlerosGovernor.json
+        - name: KlerosLiquid
+          file: ./abis/KlerosLiquid.json
       callHandlers:
         - function: executeTransactionList(uint256,uint256,uint256)
           handler: handlerExecuteTransactionList
