@@ -137,18 +137,22 @@ export function handleDraw(event: DrawEvent): void {
   log.debug("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}. drawID={}",
     [disputeID.toString(), voteID.toString(), roundNumber.toString(), drawID])
   // create draw Entity
-  let drawEntity = new Draw(drawID)
-  drawEntity.address = event.params._address
-  drawEntity.disputeId = event.params._disputeID
-  drawEntity.roundNumber = event.params._appeal
-  drawEntity.voteId = voteID
-  drawEntity.timestamp = event.block.timestamp
-  drawEntity.save()
-  log.debug("handleDraw: drawEntity stored", [])
+  // let drawEntity = new Draw(drawID)
+  // drawEntity.address = event.params._address
+  // drawEntity.disputeId = event.params._disputeID
+  // drawEntity.roundNumber = event.params._appeal
+  // drawEntity.voteId = voteID
+  // drawEntity.timestamp = event.block.timestamp
+  // drawEntity.save()
+  // log.debug("handleDraw: drawEntity stored", [])
   // create Vote entity
   log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
-  let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())!
-  let dispute = Dispute.load(disputeID.toString())!
+  let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())
+  let dispute = Dispute.load(disputeID.toString())
+  if (round === null || dispute === null ){
+    log.error("handleDraw: Dispute {} and round {} not found", [roundNumber.toString(), disputeID.toString()]);
+    return
+  }
   log.debug("handleDraw: loaded round id is {}", [round.id])
   log.debug("handleDraw: loaded dispute id is {}", [dispute.id])
   let voteEntity = new Vote(drawID)
