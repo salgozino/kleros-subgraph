@@ -137,14 +137,14 @@ export function handleDraw(event: DrawEvent): void {
   log.debug("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}. drawID={}",
     [disputeID.toString(), voteID.toString(), roundNumber.toString(), drawID])
   // create draw Entity
-  // let drawEntity = new Draw(drawID)
-  // drawEntity.address = event.params._address
-  // drawEntity.disputeId = event.params._disputeID
-  // drawEntity.roundNumber = event.params._appeal
-  // drawEntity.voteId = voteID
-  // drawEntity.timestamp = event.block.timestamp
-  // drawEntity.save()
-  // log.debug("handleDraw: drawEntity stored", [])
+  let drawEntity = new Draw(drawID)
+  drawEntity.address = event.params._address
+  drawEntity.disputeId = event.params._disputeID
+  drawEntity.roundNumber = event.params._appeal
+  drawEntity.voteId = voteID
+  drawEntity.timestamp = event.block.timestamp
+  drawEntity.save()
+  log.debug("handleDraw: drawEntity stored", [])
   // create Vote entity
   log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
   let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())
@@ -191,9 +191,13 @@ export function handleDraw(event: DrawEvent): void {
     let alreadyDrawn = false
     for (let i = 0; i < voteID.toI32(); i++) {
       let tempDrawID = getVoteId(disputeID, roundNumber, BigInt.fromI32(i))
-      let otherVote = Draw.load(tempDrawID)!
-      if (otherVote.address === event.params._address) {
-        alreadyDrawn = true
+      let otherVote = Draw.load(tempDrawID)
+      if (otherVote === null) {
+        log.error("handleDraw: Could not found drawID {}", [tempDrawID.toString()]);
+      } else {
+        if (otherVote.address === event.params._address) {
+          alreadyDrawn = true
+        }
       }
     }
     // if wasn't drawn, sum 1 in the counter
