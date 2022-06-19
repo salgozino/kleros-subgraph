@@ -17,14 +17,14 @@ export function handlerExecuteTransactionList(call: ExecuteTransactionListCall):
   // parameters of the klerosliquid.
   //
   // WARNING!. THIS SHOULD NOT BE DEPLOYED IN XDAI!. WILL FAIL BECAUSE THERE IS NO GOVERNOR!.
-  log.warning("Governor: Checking court parameters because the governor was called at block {}!", [call.block.number.toString()])
+  // log.warning("Governor: Checking court parameters because the governor was called at block {}!", [call.block.number.toString()])
   let kc = getOrInitializeKlerosCounter();
   const KL = Address.fromBytes(Address.fromHexString("0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069"));
   
   let kl = KlerosLiquid.bind(KL);
 
   for (let subcourtID = 0; subcourtID <= kc.courtsCount.toI32(); subcourtID++) {
-    log.debug("Governor: Updating court {}", [subcourtID.toString()])
+    // log.debug("Governor: Updating court {}", [subcourtID.toString()])
     let courtID = BigInt.fromI32(subcourtID)
     let court = getOrCreateCourt(courtID, KL);
     if (court === null) return
