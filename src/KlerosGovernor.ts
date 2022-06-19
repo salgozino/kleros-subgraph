@@ -28,15 +28,18 @@ export function handlerExecuteTransactionList(call: ExecuteTransactionListCall):
     let courtID = BigInt.fromI32(subcourtID)
     let court = getOrCreateCourt(courtID, KL);
     if (court === null) return
-    let courtObj = kl.courts(courtID)
-    court.hiddenVotes = courtObj.value1
-    court.minStake = courtObj.value2
-    court.alpha = courtObj.value3
-    court.feeForJuror = courtObj.value4
-    court.jurorsForCourtJump = courtObj.value5
-    // get timePeriods
-    let subcourtObj = kl.getSubcourt(courtID)
-    court.timePeriods = subcourtObj.value1
-    court.save()
+    let courtObj = kl.try_courts(courtID)
+    if (!courtObj.reverted) {
+      court.hiddenVotes = courtObj.value.value1
+      court.minStake = courtObj.value.value2
+      court.alpha = courtObj.value.value3
+      court.feeForJuror = courtObj.value.value4
+      court.jurorsForCourtJump = courtObj.value.value5
+      // get timePeriods
+      let subcourtObj = kl.getSubcourt(courtID)
+      court.timePeriods = subcourtObj.value1
+      court.save()
+    }
+    
   }
 }

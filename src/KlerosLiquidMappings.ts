@@ -649,11 +649,11 @@ export function getOrInitializeKlerosCounter(): KlerosCounter {
 }
 
 export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court {
-  log.debug("getOrCreateCourt: Loading court {}", [subcourtID.toString()])
+  // log.debug("getOrCreateCourt: Loading court {}", [subcourtID.toString()])
   let court = Court.load(subcourtID.toString())
   if (court == null) {
     court = new Court(subcourtID.toString())
-    log.debug("getOrCreateCourt: Creating court {}", [court.id])
+    // log.debug("getOrCreateCourt: Creating court {}", [court.id])
     court.subcourtID = subcourtID
     court.childs = []
     court.disputesNum = BigInt.fromI32(0)
@@ -671,29 +671,39 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     }
 
     // get courtInputs from contract
-    log.debug("getOrCreateCourt: Asking to the contract the parameters", [])
+    // log.debug("getOrCreateCourt: Asking to the contract the parameters", [])
     let contract = KlerosLiquid.bind(KLContract)
-    let courtObj = contract.courts(subcourtID)
-    court.hiddenVotes = courtObj.value1
-    court.minStake = courtObj.value2
-    court.alpha = courtObj.value3
-    court.feeForJuror = courtObj.value4
-    court.jurorsForCourtJump = courtObj.value5
-    // get timePeriods
-    let subcourtObj = contract.getSubcourt(subcourtID)
-    court.timePeriods = subcourtObj.value1
-
-    let parentCourtID = courtObj.value0
-    if (parentCourtID.notEqual(subcourtID)) {
-      let parentCourt = getOrCreateCourt(parentCourtID, KLContract)
-      court.parent = parentCourt.id
-      // updating childs in parent court
-      let childs = parentCourt.childs
-      childs.push(court.id)
-      parentCourt.childs = childs
-      parentCourt.save()
+    let courtObj = contract.try_courts(subcourtID)
+    if (!courtObj.reverted) {
+      court.hiddenVotes = courtObj.value.value1
+      court.minStake = courtObj.value.value2
+      court.alpha = courtObj.value.value3
+      court.feeForJuror = courtObj.value.value4
+      court.jurorsForCourtJump = courtObj.value.value5
+      // get timePeriods
+      let subcourtObj = contract.getSubcourt(subcourtID)
+      court.timePeriods = subcourtObj.value1
+  
+      let parentCourtID = courtObj.value.value0
+      if (parentCourtID.notEqual(subcourtID)) {
+        let parentCourt = getOrCreateCourt(parentCourtID, KLContract)
+        court.parent = parentCourt.id
+        // updating childs in parent court
+        let childs = parentCourt.childs
+        childs.push(court.id)
+        parentCourt.childs = childs
+        parentCourt.save()
+      }
+    } else {
+      log.error("getOrCreateCourt: reverted call to SC. Setting values to 0 to avoid errors", []);
+      court.hiddenVotes = false;
+      court.minStake = BigInt.fromI32(0);
+      court.alpha = BigInt.fromI32(1);
+      court.feeForJuror = BigInt.fromI32(0);
+      court.jurorsForCourtJump = BigInt.fromI32(0);
+      court.timePeriods = [BigInt.fromI32(0), BigInt.fromI32(0), BigInt.fromI32(0), BigInt.fromI32(0)];
     }
-
+    
     log.debug("getOrCreateCourt: Saving court", [])
     court.save()
 
