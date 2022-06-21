@@ -23,8 +23,8 @@ export function handlerExecuteTransactionList(call: ExecuteTransactionListCall):
   
   let kl = KlerosLiquid.bind(KL);
 
-  for (let subcourtID = 0; subcourtID <= kc.courtsCount.toI32(); subcourtID++) {
-    // log.debug("Governor: Updating court {}", [subcourtID.toString()])
+  for (let subcourtID = 0; subcourtID < kc.courtsCount.toI32(); subcourtID++) {
+    log.debug("Governor: Updating court {}", [subcourtID.toString()])
     let courtID = BigInt.fromI32(subcourtID)
     let court = getOrCreateCourt(courtID, KL);
     if (court === null) return
