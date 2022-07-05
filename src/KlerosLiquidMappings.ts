@@ -334,11 +334,19 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       log.debug('handleNewPeriod: Updating coherency counters for dispute {}', [dispute.id])
       for (let rIndex = 0; rIndex < dispute.numberOfRounds.toI32(); rIndex++) {
         let round = Round.load(dispute.id.toString()+"-"+BigInt.fromI32(rIndex).toString())
-        log.debug('handleNewPeriod: searching in Round {} to update coherency', [round.id])
+        if (round === null){
+          log.error("handleNewPeriod: Round {} not found.", [dispute.id.toString()+"-"+BigInt.fromI32(rIndex).toString()]);
+          return
+        }
+        log.debug('handleNewPeriod: searching in Round {} to update coherency', [round.id]);
         for (let vIndex = 0; vIndex < round.numberOfVotes.toI32(); vIndex++) {
           let voteId = getVoteId(BigInt.fromString(dispute.id), BigInt.fromI32(rIndex), BigInt.fromI32(vIndex))
           
           let vote = Vote.load(voteId)
+          if (vote === null){
+            log.error("handleNewPeriod: Vote {} not found.", [voteId]);
+            return
+          }
           let juror = getOrCreateJuror(Address.fromString(vote.address), null, BigInt.fromI32(0), event.address)
           if (vote.choice === dispute.currentRulling){
             vote.coherent = true;
@@ -797,7 +805,7 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
     juror.coherency = null
     juror.numberOfCoherentVotes = BigInt.fromI32(0)
     juror.numberOfVotes = BigInt.fromI32(0)
-    if (courtID != null){
+    if (courtID !== null){
       let court = getOrCreateCourt(courtID, KLContract)
       juror.subcourtsIDs = [court.id]
     }
