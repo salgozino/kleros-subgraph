@@ -151,9 +151,13 @@ export function handleDraw(event: DrawEvent): void {
   log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
   let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())!
   let dispute = Dispute.load(disputeID.toString())!
+  if (round === null || dispute === null ){
+    log.error("handleDraw: Dispute {} and round {} not found", [roundNumber.toString(), disputeID.toString()]);
+    return
+  }
   round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
   log.debug("handleDraw: Adding 1 vote to the round voute counter", [])
-  
+
   let voteEntity = new Vote(drawID)
   let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
   let juror = getOrCreateJuror(event.params._address, BigInt.fromString(court.id), BigInt.fromI32(0), event.address)
@@ -644,36 +648,33 @@ function getVoteCounter(disputeID: BigInt, round: BigInt, address: Address): Big
   return winningChoice
 }
 
-function getOrInitializeKlerosCounter(): KlerosCounter {
+export function getOrInitializeKlerosCounter(): KlerosCounter {
   let kc = KlerosCounter.load('ID')
   if (kc == null) {
     log.debug("getOrInitializeKlerosCounter: Initializing counters",[])
     kc = new KlerosCounter('ID')
-    kc.courtsCount = BigInt.fromI32(0),
-    kc.disputesCount = BigInt.fromI32(0),
-    kc.openDisputes = BigInt.fromI32(0),
-    kc.closedDisputes = BigInt.fromI32(0),
-    kc.evidencePhaseDisputes = BigInt.fromI32(0),
-    kc.commitPhaseDisputes = BigInt.fromI32(0),
-    kc.votingPhaseDisputes = BigInt.fromI32(0),
-    kc.appealPhaseDisputes = BigInt.fromI32(0),
-    kc.activeJurors = BigInt.fromI32(0),
-    kc.inactiveJurors = BigInt.fromI32(0),
-    kc.drawnJurors = BigInt.fromI32(0),
-    kc.numberOfArbitrables = BigInt.fromI32(0),
-    kc.tokenStaked = BigInt.fromI32(0),
-    kc.totalETHFees = BigInt.fromI32(0),
-    kc.totalTokenRedistributed = BigInt.fromI32(0),
-    kc.totalUSDthroughContract = BigInt.fromI32(0),
+    kc.courtsCount = BigInt.fromI32(0);
+    kc.disputesCount = BigInt.fromI32(0);
+    kc.openDisputes = BigInt.fromI32(0);
+    kc.closedDisputes = BigInt.fromI32(0);
+    kc.evidencePhaseDisputes = BigInt.fromI32(0);
+    kc.commitPhaseDisputes = BigInt.fromI32(0);
+    kc.votingPhaseDisputes = BigInt.fromI32(0);
+    kc.appealPhaseDisputes = BigInt.fromI32(0);
+    kc.activeJurors = BigInt.fromI32(0);
+    kc.inactiveJurors = BigInt.fromI32(0);
+    kc.drawnJurors = BigInt.fromI32(0);
+    kc.numberOfArbitrables = BigInt.fromI32(0);
+    kc.tokenStaked = BigInt.fromI32(0);
+    kc.totalETHFees = BigInt.fromI32(0);
+    kc.totalTokenRedistributed = BigInt.fromI32(0);
+    kc.totalUSDthroughContract = BigInt.fromI32(0);
     kc.save()
-  } else{
-    log.debug("getOrInitializeKlerosCounter: counters loaded",[])
   }
   return kc
 }
 
 export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court {
-  log.debug("getOrCreateCourt: Loading court {}",[subcourtID.toString()])
   let court = Court.load(subcourtID.toString())
   if (court == null){
     court = new Court(subcourtID.toString())
@@ -721,7 +722,7 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
       parentCourt.save()
     }
 
-    log.debug("getOrCreateCourt: Saving court",[])
+    // log.debug("getOrCreateCourt: Saving court",[])
     court.save() 
 
     // update courtCounter
