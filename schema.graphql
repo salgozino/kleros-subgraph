@@ -52,8 +52,8 @@ type Court @entity {
   totalETHFees: BigInt!,
   "tokens transfered from incoherent jurors to coherent juros"
   totalTokenRedistributed: BigInt!,
-  "Coherency of the votes. Coherent Votes / Total Votes * 100"
-  coherency: BigInt,
+  "Coherency of the court votes. Coherent Votes / Total Votes * 100. 0 if no votes"
+  coherency: BigInt!,
   "Number of votes in closed disputes"
   numberOfVotes: BigInt!,
   "Number of coherent votes"
@@ -112,7 +112,7 @@ type Juror @entity {
   "address, juror (person) maybe has multiple addresses."
   id: ID!,
   "Courts where the juror has stake"
-  subcourtsIDs: [Court!],
+  subcourtsIDs: [Court!]!,
   "Current Stakes for this juror"
   currentStakes: [CourtStake!] @derivedFrom(field:"juror"),
   "all the setStakes event emited by this juror"
@@ -133,8 +133,8 @@ type Juror @entity {
   ethRewards: BigInt!
   "Amount of Token (PNK) rewarded as juror (+ it's gain, - it's loss)"
   tokenRewards: BigInt!
-  "Coherency on the juror votes. Coherent Votes / Total Votes * 100. Null if no votes"
-  coherency: BigInt,
+  "Coherency of the juror votes. Coherent Votes / Total Votes * 100. 0 if no votes"
+  coherency: BigInt!,
   "Number of coherent votes"
   numberOfCoherentVotes: BigInt!
   "Number of votes this juror has in closed disputes"
@@ -205,6 +205,12 @@ type Dispute @entity {
   rounds: [Round!] @derivedFrom(field:"dispute"),
   "Number of rounds in the dispute"
   numberOfRounds: BigInt!,
+  "Number of votes in the dispute"
+  numberOfVotes: BigInt!
+  "Number of coherent votes in the dispute"
+  numberOfCoherentVotes: BigInt!
+  "Coherency of the dispute votes. Coherent Votes / Total Votes * 100. 0 if no votes"
+  coherency: BigInt!,
   "Is ruled the case?"
   ruled: Boolean!,
   "Current choice ruled"
@@ -228,6 +234,10 @@ type Round @entity {
   votes: [Vote!]! @derivedFrom(field: "round")
   "Amount of votes in the Round"
   numberOfVotes: BigInt!,
+  "Amount of coherent votes in the Round"
+  numberOfCoherentVotes: BigInt!,
+  "Coherency of the round votes. Coherent Votes / Total Votes * 100. 0 if no votes"
+  coherency: BigInt!
   "which choice wins in the round?"
   winningChoice: BigInt!,
   "Timestamp of the beggining of the round"

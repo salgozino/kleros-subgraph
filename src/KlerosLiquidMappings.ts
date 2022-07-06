@@ -94,17 +94,23 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.ruled = disputeData.value7
   dispute.jurorsInvolved = []
   dispute.numberOfRounds = BigInt.fromI32(1)
+  dispute.numberOfCoherentVotes = BigInt.fromI32(0)
+  dispute.numberOfVotes = BigInt.fromI32(0)
+  dispute.coherency = BigInt.fromI32(0);
   log.debug("handleDisputeCreation: saving dispute {} entity",[event.params._disputeID.toString()])
   dispute.save()
   
   // round creation
-  log.debug("handleDisputeCreation: Creating the round 0 for the dispute {}", [event.params._disputeID.toString()])
-  let round = new Round(event.params._disputeID.toString()+"-"+BigInt.fromI32(0).toString())
+  // log.debug("handleDisputeCreation: Creating the round 0 for the dispute {}", [event.params._disputeID.toString()])
+  let roundID = getRoundId(event.params._disputeID, dispute.numberOfRounds.minus(BigInt.fromI32(1)))
+  let round = new Round(roundID);
   round.dispute = dispute.id
   round.startTime = event.block.timestamp
   round.numberOfVotes = BigInt.fromI32(0)  // each vote it's added when draw
-  round.winningChoice = getVoteCounter(event.params._disputeID, BigInt.fromI32(0), event.transaction.from)
-  log.debug("handleDisputeCreation: saving the round 0 for the dispute {}", [event.params._disputeID.toString()])
+  round.numberOfCoherentVotes = BigInt.fromI32(0)  // each vote it's added when draw
+  round.coherency = BigInt.fromI32(0); // initialize in 0
+  round.winningChoice = BigInt.fromI32(0); // initialize in 0
+  // log.debug("handleDisputeCreation: saving the round 0 for the dispute {}", [event.params._disputeID.toString()])
   round.save()
 
   //update counters
@@ -115,7 +121,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   court.save()
 
   // add number of disputes in arbitrable
-  log.debug("handleDisputeCreation: Adding +1 in dispute counters for arbitrable {}", [arbitrable.id])
+  // log.debug("handleDisputeCreation: Adding +1 in dispute counters for arbitrable {}", [arbitrable.id])
   arbitrable.disputesCount = arbitrable.disputesCount.plus(BigInt.fromI32(1))
   arbitrable.openDisputes = arbitrable.openDisputes.plus(BigInt.fromI32(1))
   arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.plus(BigInt.fromI32(1))
@@ -123,7 +129,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
 
   // Kleros Counters
   let kc = getOrInitializeKlerosCounter()
-  log.debug("handleDisputeCreation: Adding 1 in the disputesCount, openDisputes and evidencePhaseDisputes counter", [])
+  // log.debug("handleDisputeCreation: Adding 1 in the disputesCount, openDisputes and evidencePhaseDisputes counter", [])
   kc.disputesCount = kc.disputesCount.plus(BigInt.fromI32(1))
   kc.openDisputes = kc.openDisputes.plus(BigInt.fromI32(1))
   kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.plus(BigInt.fromI32(1))
@@ -136,8 +142,8 @@ export function handleDraw(event: DrawEvent): void {
   let voteID = event.params._voteID
   
   let drawID = getVoteId(disputeID, roundNumber, voteID)
-  log.debug("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}. drawID={}",
-     [disputeID.toString(), voteID.toString(), roundNumber.toString(), drawID])
+  // log.debug("handleDraw: Creating draw entity. disputeID={}, voteID={}, roundNumber={}. drawID={}",
+  //    [disputeID.toString(), voteID.toString(), roundNumber.toString(), drawID])
   // create draw Entity
   let drawEntity = new Draw(drawID)
   drawEntity.address = event.params._address
@@ -146,17 +152,18 @@ export function handleDraw(event: DrawEvent): void {
   drawEntity.voteId = voteID
   drawEntity.timestamp = event.block.timestamp
   drawEntity.save()
-  log.debug("handleDraw: drawEntity stored",[])
+  // log.debug("handleDraw: drawEntity stored",[])
   // create Vote entity
   log.debug("handleDraw: Creating vote entity, id={} for the round {}", [drawID, roundNumber.toString()])
-  let round = Round.load(disputeID.toString() + "-" + roundNumber.toString())!
-  let dispute = Dispute.load(disputeID.toString())!
+  let roundID = getRoundId(disputeID, roundNumber);
+  let round = Round.load(roundID)
+  let dispute = Dispute.load(disputeID.toString())
   if (round === null || dispute === null ){
-    log.error("handleDraw: Dispute {} and round {} not found", [roundNumber.toString(), disputeID.toString()]);
+    log.error("handleDraw: Dispute {} and round {} not found", [roundID.toString(), disputeID.toString()]);
     return
   }
-  round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
-  log.debug("handleDraw: Adding 1 vote to the round voute counter", [])
+  
+  // log.debug("handleDraw: Adding 1 vote to the round voute counter", [])
 
   let voteEntity = new Vote(drawID)
   let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
@@ -210,16 +217,24 @@ export function handleDraw(event: DrawEvent): void {
   let jurors_involved = dispute.jurorsInvolved
   jurors_involved.push(juror.id)
   dispute.jurorsInvolved = jurors_involved
-  log.debug('handleDraw: Adding juror {} to dispute {}', [juror.id, dispute.id])
+  // log.debug('handleDraw: Adding juror {} to dispute {}', [juror.id, dispute.id])
+
+  // Adding 1 to the votes counters
+  round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
+  dispute.numberOfVotes = dispute.numberOfVotes.plus(BigInt.fromI32(1))
+  court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
+  juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
   dispute.save()
   round.save()
+  juror.save()
+  court.save()
 }
 
 export function handleCastCommit(call: CastCommitCall): void {
   let disputeID = call.inputs._disputeID
   let voteIDs = call.inputs._voteIDs
   let commit = call.inputs._commit
-  log.debug("handleCastVote: Casting vote from dispute {}", [disputeID.toString()])
+  // log.debug("handleCastVote: Casting vote from dispute {}", [disputeID.toString()])
   let dispute = Dispute.load(disputeID.toString())
   if (dispute == null){
     log.error("handleCastVote: Error trying to load the dispute with id {}. The vote will not be stored", [disputeID.toString()])
@@ -309,6 +324,10 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   // The same when an appeal is raised. The counters are handled in the AppealDecision Event because in mainnet
   // the event NewPeriod it's not emmited (oldPeriod = Appeal & newPeriod != execution)
   let oldPeriod = dispute.period
+  dispute.currentRulling = getCurrentRulling(disputeID, event.address);
+  dispute.period = getPeriodString(event.params._period)
+  dispute.lastPeriodChange = event.block.timestamp
+
   if ( (event.params._period !== 0) && !(oldPeriod == getPeriodString(3) && event.params._period !== 4)){
     let kc = getOrInitializeKlerosCounter()
     let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
@@ -320,7 +339,6 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       log.debug("handleNewPeriod: Period 4: updating disputes ongoing and closed in court {} entity", [court.id])
       court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
       court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
-      // court.save()
       
       // update counters
       log.debug("handleNewPeriod: Updating KC parameters in period 4. +1 for closed disputes, -1 for openDisputes", [])
@@ -333,10 +351,11 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       // update coherency
       log.debug('handleNewPeriod: Updating coherency counters for dispute {}', [dispute.id])
       for (let rIndex = 0; rIndex < dispute.numberOfRounds.toI32(); rIndex++) {
-        let round = Round.load(dispute.id.toString()+"-"+BigInt.fromI32(rIndex).toString())
+        let roundID = getRoundId(BigInt.fromString(dispute.id), BigInt.fromI32(rIndex))
+        let round = Round.load(roundID)
         if (round === null){
           log.error("handleNewPeriod: Round {} not found.", [dispute.id.toString()+"-"+BigInt.fromI32(rIndex).toString()]);
-          return
+          continue
         }
         log.debug('handleNewPeriod: searching in Round {} to update coherency', [round.id]);
         for (let vIndex = 0; vIndex < round.numberOfVotes.toI32(); vIndex++) {
@@ -345,28 +364,41 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
           let vote = Vote.load(voteId)
           if (vote === null){
             log.error("handleNewPeriod: Vote {} not found.", [voteId]);
-            return
+            continue
           }
           let juror = getOrCreateJuror(Address.fromString(vote.address), null, BigInt.fromI32(0), event.address)
-          if (vote.choice === dispute.currentRulling){
-            vote.coherent = true;
-            juror.numberOfCoherentVotes = juror.numberOfCoherentVotes.plus(BigInt.fromI32(1))
-            court.numberOfCoherentVotes = court.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+          
+          if (vote.choice !== null){
+            log.debug("handleNewPeriod: Coherency: Vote choice {} = Dispute rulling {}?",
+              [vote.choice!.toString(), dispute.currentRulling!.toString()]);
+            if (vote.choice!.equals(dispute.currentRulling!)) {
+              vote.coherent = true;
+              juror.numberOfCoherentVotes = juror.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+              round.numberOfCoherentVotes = round.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+              dispute.numberOfCoherentVotes = dispute.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+              court.numberOfCoherentVotes = court.numberOfCoherentVotes.plus(BigInt.fromI32(1))
+            }
           } else {
             vote.coherent = false;
           }
           log.debug('handleNewPeriod: Updating coherency of vote {}', [vote.id])
-          juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
-          court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
+
           if (court.numberOfVotes.gt(BigInt.fromI32(0))) {
             court.coherency = court.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(court.numberOfVotes)
           }
           if (juror.numberOfVotes.gt(BigInt.fromI32(0))) {
             juror.coherency = juror.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(juror.numberOfVotes)
           }
+          if (round.numberOfVotes.gt(BigInt.fromI32(0))) {
+            round.coherency = round.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(round.numberOfVotes)
+          }
+          if (dispute.numberOfVotes.gt(BigInt.fromI32(0))) {
+            dispute.coherency = dispute.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(dispute.numberOfVotes)
+          }
           vote.save()
           juror.save()
         }
+        round.save()
       }
       court.save()
     } else if (event.params._period==3){
@@ -442,10 +474,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     log.info("handleNewPeriod: Counter dissmiss because period it's equal to {} and old period it's {}", 
       [getPeriodString(event.params._period), oldPeriod])
   }
-  dispute.period = getPeriodString(event.params._period)
-  dispute.lastPeriodChange = event.block.timestamp
-  // update current rulling
-  dispute.currentRulling = getCurrentRulling(disputeID, event.address)
+
   dispute.save()
 }
 
@@ -453,7 +482,11 @@ export function handleTokenAndETHShift(event: TokenAndETHShiftEvent): void {
   let entity = new TokenAndETHShift(
     event.transaction.hash.toHex() + "-" + event.logIndex.toString()
     )
-  let dispute = Dispute.load(event.params._disputeID.toString())!
+  let dispute = Dispute.load(event.params._disputeID.toString())
+  if (dispute === null ){
+    log.error("handleTokenAndETHShift: Dispute {} could not be found", [event.params._disputeID.toString()])
+    return
+  }
   let juror = getOrCreateJuror(event.params._address, null, BigInt.fromI32(0), event.address)
   entity.disputeId = dispute.id
   entity.tokenAmount = event.params._tokenAmount
@@ -504,17 +537,16 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   }
   // log.debug("handleAppealDecision: Dispute loaded with id {}",[dispute.id])
 
-  
-  // Iterate searching for the last round in this dispute
-  // let roundNum = getLastRound(disputeID)
   let roundNum = dispute.numberOfRounds.plus(BigInt.fromI32(1))
   // adding 1 to create the new round
-  let roundID = disputeID.toString()+"-"+roundNum.toString()  
+  let roundID = getRoundId(disputeID, roundNum)
   log.debug("handleAppealDecision: new round number is {}. Round id = {}", [roundNum.toString(), roundID])
   let round = new Round(roundID)
   round.dispute = dispute.id
   round.startTime = event.block.timestamp
   round.numberOfVotes = BigInt.fromI32(0) // each vote it's added when draw
+  round.numberOfCoherentVotes = BigInt.fromI32(0) // each vote it's added when draw
+  round.coherency = BigInt.fromI32(0);
   round.winningChoice = BigInt.fromI32(0) // initiate in pending
   round.save()
   // Check if dispute is not jumped to parent court
@@ -714,7 +746,7 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     court.jurorsForCourtJump = courtObj.value5
     court.numberOfCoherentVotes = BigInt.fromI32(0)
     court.numberOfVotes = BigInt.fromI32(0)
-    court.coherency = null
+    court.coherency = BigInt.fromI32(0);
     // get timePeriods
     let subcourtObj = contract.getSubcourt(subcourtID)
     court.timePeriods = subcourtObj.value1
@@ -743,6 +775,10 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
 
 function getVoteId(dispute:BigInt, roundNum:BigInt, voteId:BigInt): string{
   return dispute.toString()+"-"+roundNum.toString()+"-"+voteId.toString()
+}
+
+function getRoundId(dispute:BigInt, round:BigInt): string {
+  return dispute.toString() + "-" + round.toString()
 }
 
 function getLastRound(disputeID:BigInt):BigInt{
@@ -802,7 +838,7 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
     juror.totalStaked = totalStake
     juror.ethRewards = BigInt.fromI32(0)
     juror.tokenRewards = BigInt.fromI32(0)
-    juror.coherency = null
+    juror.coherency = BigInt.fromI32(0)
     juror.numberOfCoherentVotes = BigInt.fromI32(0)
     juror.numberOfVotes = BigInt.fromI32(0)
     if (courtID !== null){
@@ -841,7 +877,7 @@ function updateJurorStake(address: Address, courtID: BigInt,stake: BigInt, total
 
   // update juror entity
   juror.totalStaked = totalStaked
-  let subcourtIDs = juror.subcourtsIDs!
+  let subcourtIDs = juror.subcourtsIDs
   if (subcourtIDs.indexOf(court.id) === -1){
     subcourtIDs.push(court.id)
   }
