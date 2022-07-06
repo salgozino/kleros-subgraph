@@ -72,6 +72,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   let arbitrable = getOrCreateArbitrable(event.params._arbitrable)
   dispute.disputeID = event.params._disputeID
   dispute.arbitrable = arbitrable.id
+  dispute.appealed = false;
   dispute.txid = event.transaction.hash
 
   // log.debug("handleDisputeCreation: asking the dispute {} to the contract", [event.params._disputeID.toString()])
@@ -348,7 +349,13 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       // update arbitrable count
       arbitrable.openDisputes = arbitrable.openDisputes.minus(BigInt.fromI32(1))
       arbitrable.closedDisputes = arbitrable.closedDisputes.plus(BigInt.fromI32(1))
-
+      // update appealPercentage
+      if (dispute.appealed) {
+        court.disputesAppealed = court.disputesAppealed.plus(BigInt.fromI32(1));
+      }
+      if (court.disputesAppealed.gt(BigInt.fromI32(0))) {
+        court.appelPercentage = court.disputesClosed.times(BigInt.fromI32(100)).div(court.disputesAppealed)
+      }
       // update coherency
       log.debug('handleNewPeriod: Updating coherency counters for dispute {}', [dispute.id])
       for (let rIndex = 0; rIndex < dispute.numberOfRounds.toI32(); rIndex++) {
@@ -555,6 +562,7 @@ export function handleAppealDecision(event: AppealDecisionEvent): void {
   let disputeData = contract.disputes(disputeID)
   dispute.period = getPeriodString(disputeData.value3)
   dispute.numberOfRounds = dispute.numberOfRounds.plus(BigInt.fromI32(1))
+  dispute.appealed = true;
   dispute.save()
   if (disputeData.value3 !== 0) {
     log.error("handleAppealDecision: Assuming evidence as new period is wrong!, new period is {}", [dispute.period])
@@ -723,6 +731,8 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     court.subcourtID = subcourtID
     court.childs = []
     court.disputesNum = BigInt.fromI32(0)
+    court.disputesAppealed = BigInt.fromI32(0)
+    court.appelPercentage = BigInt.fromI32(0)
     court.disputesClosed = BigInt.fromI32(0)
     court.disputesOngoing = BigInt.fromI32(0)
     court.activeJurors = BigInt.fromI32(0)

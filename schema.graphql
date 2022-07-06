@@ -18,6 +18,8 @@ type Court @entity {
   subcourtID: BigInt!
   "Total of disputes handled by this court"
   disputesNum: BigInt!
+  "Number of disputes closed that were appealed at least once"
+  disputesAppealed: BigInt!
   "Number of disputes already closed"
   disputesClosed: BigInt!
   "Number of disputes without rulling"
@@ -54,6 +56,8 @@ type Court @entity {
   totalTokenRedistributed: BigInt!,
   "Coherency of the court votes. Coherent Votes / Total Votes * 100. 0 if no votes"
   coherency: BigInt!,
+  "Percentage of disputes that were appealed [0-100]."
+  appelPercentage: BigInt!
   "Number of votes in closed disputes"
   numberOfVotes: BigInt!,
   "Number of coherent votes"
@@ -211,6 +215,8 @@ type Dispute @entity {
   numberOfCoherentVotes: BigInt!
   "Coherency of the dispute votes. Coherent Votes / Total Votes * 100. 0 if no votes"
   coherency: BigInt!,
+  "Boolean indicating if this dispute was appealed at least once"
+  appealed: Boolean!
   "Is ruled the case?"
   ruled: Boolean!,
   "Current choice ruled"
