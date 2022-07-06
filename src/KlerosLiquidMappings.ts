@@ -352,9 +352,13 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       // update appealPercentage
       if (dispute.appealed) {
         court.disputesAppealed = court.disputesAppealed.plus(BigInt.fromI32(1));
+        kc.disputesAppealed = kc.disputesAppealed.plus(BigInt.fromI32(1));
       }
       if (court.disputesClosed.gt(BigInt.fromI32(0))) {
-        court.appelPercentage = court.disputesAppealed.times(BigInt.fromI32(100)).div(court.disputesClosed)
+        court.appealPercentage = court.disputesAppealed.times(BigInt.fromI32(100)).div(court.disputesClosed)
+      }
+      if (kc.closedDisputes.gt(BigInt.fromI32(0))) {
+        kc.appealPercentage = kc.disputesAppealed.times(BigInt.fromI32(100)).div(kc.closedDisputes)
       }
       // update coherency
       log.debug('handleNewPeriod: Updating coherency counters for dispute {}', [dispute.id])
@@ -732,7 +736,7 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     court.childs = []
     court.disputesNum = BigInt.fromI32(0)
     court.disputesAppealed = BigInt.fromI32(0)
-    court.appelPercentage = BigInt.fromI32(0)
+    court.appealPercentage = BigInt.fromI32(0)
     court.disputesClosed = BigInt.fromI32(0)
     court.disputesOngoing = BigInt.fromI32(0)
     court.activeJurors = BigInt.fromI32(0)

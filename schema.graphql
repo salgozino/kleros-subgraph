@@ -57,7 +57,7 @@ type Court @entity {
   "Coherency of the court votes. Coherent Votes / Total Votes * 100. 0 if no votes"
   coherency: BigInt!,
   "Percentage of disputes that were appealed [0-100]."
-  appelPercentage: BigInt!
+  appealPercentage: BigInt!
   "Number of votes in closed disputes"
   numberOfVotes: BigInt!,
   "Number of coherent votes"
@@ -83,6 +83,10 @@ type KlerosCounter @entity {
   votingPhaseDisputes: BigInt!,
   "Number of Disputes in appeal period"
   appealPhaseDisputes: BigInt!,
+  "Number of disputes closed that were appealed"
+  disputesAppealed: BigInt!,
+  "Percentage of Closed disputes that were appealed"
+  appealPercentage: BigInt!,
   "Number of active jurors"
   activeJurors: BigInt!,
   "Number of inactive jurors"
