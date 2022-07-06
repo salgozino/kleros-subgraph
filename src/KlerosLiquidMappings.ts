@@ -537,7 +537,7 @@ export function handleAppealDecision(event: AppealDecisionEvent): void{
   }
   // log.debug("handleAppealDecision: Dispute loaded with id {}",[dispute.id])
 
-  let roundNum = dispute.numberOfRounds.plus(BigInt.fromI32(1))
+  let roundNum = dispute.numberOfRounds
   // adding 1 to create the new round
   let roundID = getRoundId(disputeID, roundNum)
   log.debug("handleAppealDecision: new round number is {}. Round id = {}", [roundNum.toString(), roundID])
