@@ -353,8 +353,8 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       if (dispute.appealed) {
         court.disputesAppealed = court.disputesAppealed.plus(BigInt.fromI32(1));
       }
-      if (court.disputesAppealed.gt(BigInt.fromI32(0))) {
-        court.appelPercentage = court.disputesClosed.times(BigInt.fromI32(100)).div(court.disputesAppealed)
+      if (court.disputesClosed.gt(BigInt.fromI32(0))) {
+        court.appelPercentage = court.disputesAppealed.times(BigInt.fromI32(100)).div(court.disputesClosed)
       }
       // update coherency
       log.debug('handleNewPeriod: Updating coherency counters for dispute {}', [dispute.id])
