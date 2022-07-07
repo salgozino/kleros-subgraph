@@ -355,6 +355,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       }
       // update coherency
       log.debug('handleNewPeriod: Updating coherency counters for dispute {}', [dispute.id])
+      log.debug("handleNewPeriod: dispute currenRulling {}", [dispute.currentRulling.toString()])
       for (let rIndex = 0; rIndex < dispute.numberOfRounds.toI32(); rIndex++) {
         let roundID = getRoundId(BigInt.fromString(dispute.id), BigInt.fromI32(rIndex))
         let round = Round.load(roundID)
@@ -363,50 +364,47 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
           continue
         }
         log.debug('handleNewPeriod: searching in Round {} to update coherency', [round.id]);
-        for (let vIndex = 0; vIndex < round.numberOfVotes.toI32(); vIndex++) {
+        let vIndex = 0;
+        while (true) {
           let voteId = getVoteId(BigInt.fromString(dispute.id), BigInt.fromI32(rIndex), BigInt.fromI32(vIndex))
-          
           let vote = Vote.load(voteId)
           if (vote === null){
-            log.error("handleNewPeriod: Vote {} not found.", [voteId]);
-            continue
+            break
           }
           let juror = getOrCreateJuror(Address.fromString(vote.address), null, BigInt.fromI32(0), event.address)
+
+          round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
+          dispute.numberOfVotes = dispute.numberOfVotes.plus(BigInt.fromI32(1))
+          court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
+          juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
           
           if (vote.choice !== null){
             log.debug("handleNewPeriod: Coherency: Vote choice {} = Dispute rulling {}?",
-              [vote.choice!.toString(), dispute.currentRulling!.toString()]);
-            if (vote.choice!.equals(dispute.currentRulling!)) {
+              [vote.choice!.toString(), dispute.currentRulling.toString()]);
+            if (vote.choice!.equals(dispute.currentRulling)) {
               vote.coherent = true;
               juror.numberOfCoherentVotes = juror.numberOfCoherentVotes.plus(BigInt.fromI32(1))
               round.numberOfCoherentVotes = round.numberOfCoherentVotes.plus(BigInt.fromI32(1))
               dispute.numberOfCoherentVotes = dispute.numberOfCoherentVotes.plus(BigInt.fromI32(1))
               court.numberOfCoherentVotes = court.numberOfCoherentVotes.plus(BigInt.fromI32(1))
             }
-          } else {
-            vote.coherent = false;
           }
           log.debug('handleNewPeriod: Updating coherency of vote {}', [vote.id])
 
           // Update coherency metrics
-          round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
-          dispute.numberOfVotes = dispute.numberOfVotes.plus(BigInt.fromI32(1))
-          court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
-          juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
           if (court.numberOfVotes.gt(BigInt.fromI32(0))) {
             court.coherency = court.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(court.numberOfVotes)
           }
           if (juror.numberOfVotes.gt(BigInt.fromI32(0))) {
             juror.coherency = juror.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(juror.numberOfVotes)
           }
-          if (round.numberOfVotes.gt(BigInt.fromI32(0))) {
-            round.coherency = round.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(round.numberOfVotes)
-          }
-          if (dispute.numberOfVotes.gt(BigInt.fromI32(0))) {
-            dispute.coherency = dispute.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(dispute.numberOfVotes)
-          }
           vote.save()
           juror.save()
+
+          vIndex++;
+        }
+        if (round.numberOfVotes.gt(BigInt.fromI32(0))) {
+          round.coherency = round.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(round.numberOfVotes)
         }
         round.save()
       }
@@ -485,6 +483,9 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       [getPeriodString(event.params._period), oldPeriod])
   }
 
+  if (dispute.numberOfVotes.gt(BigInt.fromI32(0))) {
+    dispute.coherency = dispute.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(dispute.numberOfVotes)
+  }
   dispute.save()
 }
 
