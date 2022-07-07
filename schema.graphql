@@ -60,7 +60,7 @@ type Court @entity {
   appealPercentage: BigInt!
   "Number of votes in closed disputes"
   numberOfVotes: BigInt!,
-  "Number of coherent votes"
+  "Number of coherent votes in closed disputes"
   numberOfCoherentVotes: BigInt!
 }
 

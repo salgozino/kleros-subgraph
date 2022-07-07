@@ -221,15 +221,7 @@ export function handleDraw(event: DrawEvent): void {
   dispute.jurorsInvolved = jurors_involved
   // log.debug('handleDraw: Adding juror {} to dispute {}', [juror.id, dispute.id])
 
-  // Adding 1 to the votes counters
-  round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
-  dispute.numberOfVotes = dispute.numberOfVotes.plus(BigInt.fromI32(1))
-  court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
-  juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
   dispute.save()
-  round.save()
-  juror.save()
-  court.save()
 }
 
 export function handleCastCommit(call: CastCommitCall): void {
@@ -395,6 +387,11 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
           }
           log.debug('handleNewPeriod: Updating coherency of vote {}', [vote.id])
 
+          // Update coherency metrics
+          round.numberOfVotes = round.numberOfVotes.plus(BigInt.fromI32(1))
+          dispute.numberOfVotes = dispute.numberOfVotes.plus(BigInt.fromI32(1))
+          court.numberOfVotes = court.numberOfVotes.plus(BigInt.fromI32(1))
+          juror.numberOfVotes = juror.numberOfVotes.plus(BigInt.fromI32(1))
           if (court.numberOfVotes.gt(BigInt.fromI32(0))) {
             court.coherency = court.numberOfCoherentVotes.times(BigInt.fromI32(100)).div(court.numberOfVotes)
           }
