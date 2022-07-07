@@ -91,6 +91,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   dispute.numberOfChoices = disputeData.value2
   dispute.lastPeriodChange = disputeData.value4
   dispute.period = getPeriodString(disputeData.value3)
+  dispute.currentRulling = BigInt.fromI32(0)
   dispute.startTime = event.block.timestamp
   dispute.ruled = disputeData.value7
   dispute.jurorsInvolved = []

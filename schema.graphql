@@ -25,9 +25,9 @@ type Court @entity {
   "Number of disputes without rulling"
   disputesOngoing: BigInt!
   "List of disputes on this court"
-  disputes: [Dispute!] @derivedFrom(field:"subcourtID")
+  disputes: [Dispute!]! @derivedFrom(field:"subcourtID")
   "List of jurors of this court"
-  jurors: [Juror!] @derivedFrom(field:"subcourtsIDs")
+  jurors: [Juror!]! @derivedFrom(field:"subcourtsIDs")
   "Court childrens"
   childs: [Court!]!
   "Parent Court"
@@ -122,9 +122,9 @@ type Juror @entity {
   "Courts where the juror has stake"
   subcourtsIDs: [Court!]!,
   "Current Stakes for this juror"
-  currentStakes: [CourtStake!] @derivedFrom(field:"juror"),
+  currentStakes: [CourtStake!]! @derivedFrom(field:"juror"),
   "all the setStakes event emited by this juror"
-  allStakes: [StakeSet!] @derivedFrom(field:"address")
+  allStakes: [StakeSet!]! @derivedFrom(field:"address")
   "Total staked across all the courts"
   totalStaked: BigInt!,
   "List of disputes where has at least one vote"
@@ -132,11 +132,11 @@ type Juror @entity {
   "Number of disputes that has been participating as juror"
   numberOfDisputesAsJuror: BigInt!,
   "List of disputes raised by this wallet"
-  disputesAsCreator: [Dispute!] @derivedFrom(field:"creator")
+  disputesAsCreator: [Dispute!]! @derivedFrom(field:"creator")
   "Number of disputes created by this wallet"
   numberOfDisputesCreated: BigInt!,
   "All the votes of this juror"
-  votes: [Vote!] @derivedFrom(field:"address")
+  votes: [Vote!]! @derivedFrom(field:"address")
   "Amount of ETH rewarded as juror (+ it's gain, - it's loss)"
   ethRewards: BigInt!
   "Amount of Token (PNK) rewarded as juror (+ it's gain, - it's loss)"
@@ -210,7 +210,7 @@ type Dispute @entity {
   "Timestamp of the last period change"
   lastPeriodChange: BigInt!,
   "Rounds in the dispute"
-  rounds: [Round!] @derivedFrom(field:"dispute"),
+  rounds: [Round!]! @derivedFrom(field:"dispute"),
   "Number of rounds in the dispute"
   numberOfRounds: BigInt!,
   "Number of votes in the dispute"
@@ -223,8 +223,8 @@ type Dispute @entity {
   appealed: Boolean!
   "Is ruled the case?"
   ruled: Boolean!,
-  "Current choice ruled"
-  currentRulling: BigInt,
+  "Current rulling"
+  currentRulling: BigInt!,
   "List of jurors (wallets) involved in the dispute"
   jurorsInvolved: [Juror!]!,
   "Metaevidence of the dispute. Question and options"
