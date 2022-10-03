@@ -3,13 +3,14 @@
   "license": "MIT",
   "scripts": {
     "codegen": "graph codegen",
+    "auth": "graph auth --product hosted-service $ACCESS_TOKEN",
     "build": "graph build",
-    "deploy:mainnet": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard",
     "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
     "prepare:xdai": "mustache config/xdai.json subgraph.template.yaml > subgraph.yaml",
-    "deploy:xdai": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/klerosboard-xdai",
-    "deploy:xdai-test": "yarn prepare:xdai && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa",
-    "deploy:mainnet-test": "yarn prepare:mainnet && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ salgozino/sarasa-mainnet",
+    "deploy:mainnet": "yarn prepare:mainnet && graph deploy --product hosted-service salgozino/klerosboard",
+    "deploy:xdai": "yarn prepare:xdai && graph deploy --product hosted-service salgozino/klerosboard-xdai",
+    "deploy:xdai-test": "yarn prepare:xdai && graph deploy --product hosted-service salgozino/sarasa",
+    "deploy:mainnet-test": "yarn prepare:mainnet && graph deploy --product hosted-service salgozino/sarasa-mainnet",
     "test": "mocha -r ts-node/register 'tests/*.ts'"
   },
   "dependencies": {
