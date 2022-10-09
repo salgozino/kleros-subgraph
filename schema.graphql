@@ -24,6 +24,14 @@ type Court @entity {
   disputesClosed: BigInt!
   "Number of disputes without rulling"
   disputesOngoing: BigInt!
+  "Number of Disputes in evidence period"
+  evidencePhaseDisputes: BigInt!,
+  "Number of Disputes in commit period"
+  commitPhaseDisputes: BigInt!,
+  "Number of Disputes in voting period"
+  votingPhaseDisputes: BigInt!,
+  "Number of Disputes in appeal period"
+  appealPhaseDisputes: BigInt!,
   "List of disputes on this court"
   disputes: [Dispute!]! @derivedFrom(field:"subcourtID")
   "List of jurors of this court"

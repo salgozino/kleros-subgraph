@@ -120,6 +120,7 @@ export function handleDisputeCreation(event: DisputeCreationEvent): void {
   log.debug("handleDisputeCreation: Adding 1 in the disputesNum and disputesOngoing fields of the court {}", [court.id])
   court.disputesNum = court.disputesNum.plus(BigInt.fromI32(1))
   court.disputesOngoing = court.disputesOngoing.plus(BigInt.fromI32(1))
+  court.evidencePhaseDisputes = court.evidencePhaseDisputes.plus(BigInt.fromI32(1))
   court.save()
 
   // add number of disputes in arbitrable
@@ -326,11 +327,12 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
   if ( (event.params._period !== 0) && !(oldPeriod == getPeriodString(3) && event.params._period !== 4)){
     let kc = getOrInitializeKlerosCounter()
     let arbitrable = getOrCreateArbitrable(Address.fromString(dispute.arbitrable))
+    let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
     // Update new period counters
     if (event.params._period == 4) {
       // executing rulling
       dispute.ruled = true
-      let court = getOrCreateCourt(BigInt.fromString(dispute.subcourtID), event.address)
+      
       log.debug("handleNewPeriod: Period 4: updating disputes ongoing and closed in court {} entity", [court.id])
       court.disputesOngoing = court.disputesOngoing.minus(BigInt.fromI32(1))
       court.disputesClosed = court.disputesClosed.plus(BigInt.fromI32(1))
@@ -408,22 +410,25 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
         }
         round.save()
       }
-      court.save()
     } else if (event.params._period==3){
       // moving to appeal phase
       log.debug("handleNewPeriod: Updating KC parameters in period 3. +1 for appealPhase", [])
       kc.appealPhaseDisputes = kc.appealPhaseDisputes.plus(BigInt.fromI32(1))
       arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.plus(BigInt.fromI32(1))
+      court.appealPhaseDisputes = court.appealPhaseDisputes.plus(BigInt.fromI32(1));
+
     } else if (event.params._period == 2) {
       // moving to voting phase
       log.debug("handleNewPeriod: Updating KC parameters in period 2. +1 for votingPhase", [])
       kc.votingPhaseDisputes = kc.votingPhaseDisputes.plus(BigInt.fromI32(1))
       arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.plus(BigInt.fromI32(1))
+      court.votingPhaseDisputes = court.votingPhaseDisputes.plus(BigInt.fromI32(1));
     } else if (event.params._period == 1) {
       // moving to commit phase
       log.debug("handleNewPeriod: Updating KC parameters in period 1!. +1 for commitPhase disputes", [])
       kc.commitPhaseDisputes = kc.commitPhaseDisputes.plus(BigInt.fromI32(1))
       arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.plus(BigInt.fromI32(1))
+      court.commitPhaseDisputes = court.commitPhaseDisputes.plus(BigInt.fromI32(1));
     } else {
       // This should never be met...
       log.warning("handleNewPeriod: New period not handled for counters. Value {}", [dispute.period])
@@ -434,6 +439,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       log.debug("handleNewPeriod: Updating KC parameters in old period evidence. Minus 1 for evidence", [])
       kc.evidencePhaseDisputes = kc.evidencePhaseDisputes.minus(BigInt.fromI32(1))
       arbitrable.evidencePhaseDisputes = arbitrable.evidencePhaseDisputes.minus(BigInt.fromI32(1))
+      court.evidencePhaseDisputes = court.evidencePhaseDisputes.minus(BigInt.fromI32(1));
       if (kc.evidencePhaseDisputes.lt(BigInt.fromI32(0))) {
         log.error("handleNewPeriod: KC evidence count < 0", [])
       }
@@ -445,6 +451,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       log.debug("handleNewPeriod: Updating KC parameters in old period commit. Minus 1 for commit", [])
       kc.commitPhaseDisputes = kc.commitPhaseDisputes.minus(BigInt.fromI32(1))
       arbitrable.commitPhaseDisputes = arbitrable.commitPhaseDisputes.minus(BigInt.fromI32(1))
+      court.commitPhaseDisputes = court.commitPhaseDisputes.minus(BigInt.fromI32(1));
       if (kc.commitPhaseDisputes.lt(BigInt.fromI32(0))) {
         log.error("handleNewPeriod: KC commit count < 0", [])
       }
@@ -456,6 +463,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       log.debug("handleNewPeriod: Updating KC parameters in old period vote. Minus 1 for vote", [])
       kc.votingPhaseDisputes = kc.votingPhaseDisputes.minus(BigInt.fromI32(1))
       arbitrable.votingPhaseDisputes = arbitrable.votingPhaseDisputes.minus(BigInt.fromI32(1))
+      court.votingPhaseDisputes = court.votingPhaseDisputes.minus(BigInt.fromI32(1))
       if (kc.votingPhaseDisputes.lt(BigInt.fromI32(0))) {
         log.error("handleNewPeriod: KC vote count < 0", [])
       }
@@ -467,6 +475,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
       log.debug("handleNewPeriod: Updating KC parameters in old period appeal. Minus 1 for appeal", [])
       kc.appealPhaseDisputes = kc.appealPhaseDisputes.minus(BigInt.fromI32(1))
       arbitrable.appealPhaseDisputes = arbitrable.appealPhaseDisputes.minus(BigInt.fromI32(1))
+      court.appealPhaseDisputes = court.appealPhaseDisputes.minus(BigInt.fromI32(1))
       if (kc.appealPhaseDisputes.lt(BigInt.fromI32(0))) {
         log.error("handleNewPeriod: KC appeal count < 0", [])
       }
@@ -478,6 +487,7 @@ export function handleNewPeriod(event: NewPeriodEvent): void {
     }
     kc.save()
     arbitrable.save()
+    court.save()
   } else {
     log.info("handleNewPeriod: Counter dissmiss because period it's equal to {} and old period it's {}",
       [getPeriodString(event.params._period), oldPeriod])
@@ -745,6 +755,10 @@ export function getOrCreateCourt(subcourtID: BigInt, KLContract: Address): Court
     court.numberOfCoherentVotes = BigInt.fromI32(0)
     court.numberOfVotes = BigInt.fromI32(0)
     court.coherency = BigInt.fromI32(0);
+    court.evidencePhaseDisputes = BigInt.fromI32(0);
+    court.commitPhaseDisputes = BigInt.fromI32(0);
+    court.votingPhaseDisputes = BigInt.fromI32(0);
+    court.appealPhaseDisputes = BigInt.fromI32(0);
     let policy = PolicyUpdate.load(subcourtID.toString())
     if (policy == null) {
       court.policy = null
