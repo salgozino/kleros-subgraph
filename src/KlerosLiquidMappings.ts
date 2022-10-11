@@ -255,6 +255,10 @@ export function handleCastCommit(call: CastCommitCall): void {
       vote.commitGasCost = vote.commitGasUsed.times(vote.commitGasPrice)
       vote.totalGasCost = vote.totalGasCost.plus(vote.commitGasCost)
       vote.save()
+
+      let juror = getOrCreateJuror(call.from, BigInt.fromI32(0), BigInt.fromI32(0), call.to);
+      juror.totalGasCost = juror.totalGasCost.plus(vote.commitGasCost)
+      juror.save()
     }
   }
   dispute.save()
@@ -289,6 +293,10 @@ export function handleCastVote(call: CastVoteCall): void {
       vote.castGasCost = vote.castGasUsed.times(vote.castGasPrice)
       vote.totalGasCost = vote.totalGasCost.plus(vote.castGasCost)
       vote.save()
+
+      let juror = getOrCreateJuror(call.from, BigInt.fromString(dispute.subcourtID), BigInt.fromI32(0), call.to);
+      juror.totalGasCost = juror.totalGasCost.plus(vote.castGasCost)
+      juror.save()
     }
   }
 

@@ -157,6 +157,8 @@ type Juror @entity {
   numberOfVotes: BigInt!
   "Transfers of the rewards for this wallet"
   tokenAndETHShifts: [TokenAndETHShift!]! @derivedFrom(field:"address")
+  "Total gas cost"
+  totalGasCost: BigInt!
 }
 
 type CourtStake @entity {
