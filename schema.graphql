@@ -238,7 +238,7 @@ type Dispute @entity {
   "List of jurors (wallets) involved in the dispute"
   jurorsInvolved: [Juror!]!,
   "Metaevidence of the dispute. Question and options"
-  metaevidente: String
+  metaevidence: String
   "Transaction hash where this dispute was created"
   txid: Bytes!
   "Transfers made due to this dispute"
