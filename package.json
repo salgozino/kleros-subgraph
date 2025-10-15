@@ -6,31 +6,21 @@
     "auth": "graph auth --product hosted-service $ACCESS_TOKEN",
     "build": "graph build",
     "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
-    "prepare:xdai": "mustache config/xdai.json subgraph.template.yaml > subgraph.yaml",
-    "deploy:mainnet": "yarn prepare:mainnet && graph deploy --product hosted-service klerosboard/klerosboard-mainnet",
-    "deploy:xdai": "yarn prepare:xdai && graph deploy --product hosted-service klerosboard/klerosboard-gnosis",
-    "test": "mocha -r ts-node/register 'tests/*.ts'"
+    "prepare:gnosis": "mustache config/gnosis.json subgraph.template.yaml > subgraph.yaml",
+    "deploy:mainnet": "yarn prepare:mainnet && graph deploy --product hosted-service salgozino/klerosboard",
+    "deploy:gnosis": "yarn prepare:gnosis && graph deploy --studio klerosboard-gnosis"
   },
   "dependencies": {
-    "@babel/polyfill": "^7.12.1",
-    "@graphprotocol/graph-cli": "0.29.0",
-    "@graphprotocol/graph-ts": "^0.26.0",
-    "babel-polyfill": "^6.26.0",
-    "keytar": "^7.7.0",
-    "truffle-hdwallet-provider": "^1.0.17",
-    "typescript": "^4.2.2"
+    "@graphprotocol/graph-cli": "0.71.2",
+    "@graphprotocol/graph-ts": "^0.35.1",
+    "mustache": "^4.2.0"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.19",
-    "@types/mocha": "^8.2.2",
-    "@typescript-eslint/eslint-plugin": "^5.15.0",
-    "@typescript-eslint/parser": "^5.15.0",
-    "babel-register": "^6.26.0",
-    "chai": "^4.3.4",
-    "eslint": "^8.11.0",
-    "mocha": "^9.0.1",
-    "mustache": "^3.1.0",
-    "ts-node": "^10.0.0"
+    "@types/mustache": "^4",
+    "matchstick-as": "0.5.0"
+  },
+  "volta": {
+    "node": "20.13.1",
+    "yarn": "4.2.2"
   }
 }
-

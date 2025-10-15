@@ -737,6 +737,8 @@ export function getOrInitializeKlerosCounter(): KlerosCounter {
     kc.commitPhaseDisputes = BigInt.fromI32(0);
     kc.votingPhaseDisputes = BigInt.fromI32(0);
     kc.appealPhaseDisputes = BigInt.fromI32(0);
+    kc.disputesAppealed = BigInt.fromI32(0);
+    kc.appealPercentage = BigInt.fromI32(0);
     kc.activeJurors = BigInt.fromI32(0);
     kc.inactiveJurors = BigInt.fromI32(0);
     kc.drawnJurors = BigInt.fromI32(0);
@@ -895,7 +897,10 @@ function getOrCreateJuror(address: Address, courtID: BigInt | null, totalStake: 
     if (courtID !== null){
       let court = getOrCreateCourt(courtID, KLContract)
       juror.subcourtsIDs = [court.id]
+    } else {
+      juror.subcourtsIDs = []
     }
+    juror.totalGasCost = BigInt.fromI32(0)
     juror.save()
   }
   return juror
