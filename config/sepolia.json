@@ -1,0 +1,10 @@
+{
+  "network": "sepolia",
+  "kl_address": "0x90992fb4E15ce0C59aEFfb376460Fda4Ee19C879",
+  "kl_startBlock": 3635742,
+  "pr_address": "0x88Fb25D399310c07d35cB9091b8346d8b1893aa5",
+  "pr_startBlock": 3635971,
+  "kg_address": "0x0000000000000000000000000000000000000000",
+  "kg_startBlock": 3635971,
+  "pruneBlocks": 325000
+}

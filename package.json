@@ -7,8 +7,10 @@
     "build": "graph build",
     "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
     "prepare:gnosis": "mustache config/gnosis.json subgraph.template.yaml > subgraph.yaml",
-    "deploy:mainnet": "yarn prepare:mainnet && graph deploy --product hosted-service salgozino/klerosboard",
-    "deploy:gnosis": "yarn prepare:gnosis && graph deploy --studio klerosboard-gnosis"
+    "prepare:sepolia": "mustache config/sepolia.json subgraph.template.yaml > subgraph.yaml",
+    "deploy:mainnet": "yarn prepare:mainnet && graph deploy --studio klerosboard-mainnet",
+    "deploy:gnosis": "yarn prepare:gnosis && graph deploy --studio klerosboard-gnosis",
+    "deploy:sepolia": "yarn prepare:sepolia && graph deploy --studio klerosboard-sepolia"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.71.2",
